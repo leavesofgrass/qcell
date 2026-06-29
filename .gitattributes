@@ -1,0 +1,10 @@
+# Normalize line endings: store LF in the repository, check out native locally.
+* text=auto
+
+# Binary assets — never touch line endings.
+*.png binary
+*.otf binary
+*.pyz binary
+*.xlsx binary
+*.ods binary
+*.parquet binary

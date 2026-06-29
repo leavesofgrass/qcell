@@ -1,0 +1,82 @@
+name: Release
+
+# Pushing a tag that starts with `v` (e.g. v0.1.0) builds the artifacts and
+# publishes a GitHub Release with them attached. A manual run (workflow_dispatch)
+# builds and uploads the artifacts for testing but does NOT publish a release.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+# The release job needs write access to create the Release and upload assets.
+permissions:
+  contents: write
+
+env:
+  PYTHONUTF8: "1"
+
+jobs:
+  # ── Wheel + sdist ──────────────────────────────────────────────────────────
+  # qcell is pure Python, so the wheel is `py3-none-any` and one build serves
+  # every platform. This is the artifact to `pip install` when testing a release,
+  # and it pre-stages a future PyPI publish. `twine check` guards long-description
+  # rendering ahead of that.
+  wheel:
+    name: Build wheel + sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: python -m pip install build twine
+      - run: python -m build
+      - run: python -m twine check dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel
+          path: dist/*
+
+  # ── qcell.pyz (single-file zipapp) ──────────────────────────────────────────
+  # make_pyz.py ships only optimize=2 .pyc (no source), so the archive is tied to
+  # the Python minor version that builds it — pinned to 3.13 here. Users run it
+  # with `python qcell.pyz` on Python 3.13.
+  pyz:
+    name: Build qcell.pyz
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Build qcell.pyz
+        run: python make_pyz.py
+      - name: Smoke-test the archive
+        run: python qcell.pyz --version
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pyz
+          path: qcell.pyz
+
+  # ── Publish the GitHub Release ──────────────────────────────────────────────
+  # Tag pushes only. Collects every built artifact (wheel, sdist, pyz) and
+  # attaches them to a release with auto-generated notes.
+  release:
+    name: Publish GitHub Release
+    needs: [wheel, pyz]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: List collected artifacts
+        run: ls -R artifacts
+      - name: Create / update the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true

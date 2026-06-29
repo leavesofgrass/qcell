@@ -1,0 +1,146 @@
+# Configuration
+
+qcell is configured through a single JSON settings file, a handful of environment variables, and a set of platform-correct runtime directories that hold its config, data, cache, and logs. Almost nothing needs configuring to get started — the defaults are sensible and every optional feature degrades gracefully when its dependency is absent — but this page documents every knob: where settings live, what each field does, the environment variables, the theme presets, the on-demand OpenDyslexic font, and pandoc detection for equation rendering.
+
+## Settings file
+
+Settings are stored as JSON in `settings.json` inside qcell's config directory (see [Runtime directories](#runtime-directories) below — typically `…/qcell/settings.json`). The GUI and TUI load it at startup and write it back when you change a setting. If the file is missing or unreadable, qcell silently uses the defaults, so deleting it is a safe way to reset.
+
+JSON encoding uses `msgspec` when the `fast-io` extra is installed and falls back to the standard library otherwise; the behavior is identical either way. The schema is versioned and migrates lazily on read (for example, an old `color_scheme` field is renamed to `theme` automatically and written back).
+
+### Settings fields
+
+| Field | Type | Default | Meaning |
+|-------|------|---------|---------|
+| `theme` | string | `"obsidian"` | GUI theme preset (see [Themes](#themes)). |
+| `vim_mode` | bool | `true` | Vim-style key bindings, on by default. |
+| `tui_theme` | string | `"obsidian"` | TUI color theme. |
+| `zoom` | float | `1.0` | GUI zoom factor. |
+| `column_width` | int | `10` | Default column width. |
+| `dyslexic_font` | bool | `false` | Use the OpenDyslexic font in the GUI (see [OpenDyslexic font](#opendyslexic-font)). |
+| `faceplate_assets_dir` | string | `""` | Folder of calculator faceplate artwork (see [Faceplate assets](#faceplate-assets)). |
+| `faceplate_repo` | string | `""` | GitHub `owner/name` repo to fetch faceplate assets from. |
+| `open_default_panels` | bool | `true` | Open the default side panels on GUI startup. |
+| `show_toolbar` | bool | `true` | Show the GUI toolbar. |
+| `recent_files` | list | `[]` | Recently opened file paths. |
+| `window_geometry` | dict | `{}` | Saved GUI window position/size. |
+| `schema_version` | int | `1` | Settings schema version (managed by qcell). |
+
+You can edit `settings.json` by hand while qcell is closed, but most fields are also exposed through the GUI (theme, fonts, toolbar, faceplate folder) and the TUI, which is the recommended way to change them.
+
+## Runtime directories
+
+qcell never hardcodes paths. It resolves four OS-appropriate directories at startup and creates them if needed. When the `platformdirs` package (from the `fast-io` extra) is installed it uses that; otherwise a built-in fallback mirrors the same logic.
+
+| Directory | Holds |
+|-----------|-------|
+| **CONFIG** | `settings.json`, the `macros/` folder for auto-discovered macros. |
+| **DATA** | Persistent application data, including an `exchange/` subfolder for the generic JSON interchange format. |
+| **CACHE** | Downloaded assets — the OpenDyslexic font (`fonts/`) and fetched faceplate artwork (`faceplates/`). |
+| **LOG** | Log files. |
+
+Typical locations per platform:
+
+| Platform | CONFIG | DATA | CACHE | LOG |
+|----------|--------|------|-------|-----|
+| Windows | `%APPDATA%\qcell` | `%LOCALAPPDATA%\qcell` | `%LOCALAPPDATA%\qcell\Cache` | `%LOCALAPPDATA%\qcell\Logs` |
+| macOS | `~/Library/Application Support/qcell` | same as config | `~/Library/Caches/qcell` | `~/Library/Logs/qcell` |
+| Linux | `$XDG_CONFIG_HOME/qcell` (`~/.config/qcell`) | `$XDG_DATA_HOME/qcell` (`~/.local/share/qcell`) | `$XDG_CACHE_HOME/qcell` (`~/.cache/qcell`) | `…/qcell/logs` |
+
+To see the exact paths on your machine, run:
+
+```bash
+qcell --deps
+```
+
+It prints the config, data, cache, and log directories at the bottom of the report (see [cli.md](cli.md)).
+
+## Environment variables
+
+### `QCELL_QT_BINDING`
+
+Forces which Qt binding the GUI uses. qcell prefers **PySide6** (LGPL) and falls back to **PyQt6**; no GUI code branches on the binding, so the app runs identically on either. Set this to override the default order:
+
+```bash
+QCELL_QT_BINDING=PyQt6 qcell gui
+```
+
+Only `PyQt6` is treated specially: setting it forces the PyQt6 path even when PySide6 is installed. Any other value (or leaving it unset) keeps the default PySide6-then-PyQt6 order. This is mainly useful for testing both bindings. See [getting-started.md](getting-started.md) for installing each one.
+
+### `QCELL_FACEPLATE_DIR`
+
+Points at a **faceplate-assets root** — a directory that holds per-model subfolders of calculator faceplate artwork used by the GUI's photographic faceplate for the built-in RPN calculator. Each model subfolder must contain a `background.png` and at least one `.kml` layout file.
+
+```bash
+# Point at a local checkout's voyager assets
+export QCELL_FACEPLATE_DIR=/path/to/qrpn-voyager/qrpn/assets/voyager
+qcell gui
+```
+
+See [Faceplate assets](#faceplate-assets) for the full resolution order. qcell **bundles no artwork** and never copies these files — it only reads them in place.
+
+### `PANDOC`
+
+Points at a pandoc executable for rich equation rendering. See [Pandoc](#pandoc-for-equations) below.
+
+## Themes
+
+The GUI ships a set of theme presets in `qcell/gui/theming.py`; the TUI has matching color themes. Set `theme` (GUI) or `tui_theme` (TUI) in `settings.json`, or switch from within the app. An unknown name falls back to the default (`obsidian`).
+
+| Preset | Style |
+|--------|-------|
+| `obsidian` | Default dark theme. |
+| `light` | Light theme. |
+| `high_contrast` | High-contrast theme. |
+| `nord` | Nord palette. |
+| `dark_one` | Atom One Dark style. |
+| `solarized` | Solarized. |
+| `crt_green` | Green phosphor CRT. |
+| `crt_amber` | Amber phosphor CRT. |
+
+The GUI renders any preset through a token-based stylesheet, and the GUI theming module can also import themes from an Obsidian CSS snippet or a Zed JSON theme. The TUI maps each theme to the nearest 256-color terminal palette.
+
+## OpenDyslexic font
+
+qcell can use the **OpenDyslexic** typeface (SIL OFL 1.1), a free, openly licensed font designed to ease reading for people with dyslexia. The binaries are **not bundled**: when you enable the dyslexic font (the `dyslexic_font` setting, toggled in the GUI), qcell downloads the Regular and Bold `.otf` files from the upstream GitHub repository into its cache directory (`CACHE/fonts/`) on first use.
+
+The fetch is best-effort and offline-safe — any network or file error is logged and swallowed, so toggling the font on without a connection simply leaves it unavailable rather than raising an error. Once cached, the font is reused with no further network access.
+
+## Faceplate assets
+
+The GUI's built-in RPN calculator can render a photographic faceplate (background image + key overlays + a `.kml` layout per calculator model). qcell distributes **none** of this artwork; it reads asset files you supply. A faceplate is considered usable when its model folder contains a `background.png` and at least one `*.kml` layout file.
+
+qcell looks for a model's assets in this order and uses the first usable match:
+
+1. The `faceplate_assets_dir` setting, if set (the assets-root folder).
+2. The `QCELL_FACEPLATE_DIR` environment variable (also an assets-root folder).
+3. A local `qrpn-voyager/` or `qv/` checkout found beside the working directory, its parent, or the qcell source tree — assets are expected under `qrpn/assets/voyager/<model>/`. Contributors who keep that checkout handy get the artwork with no configuration.
+4. Assets you fetched from a GitHub repo into qcell's cache (`CACHE/faceplates/`) via the GUI's Tools → Fetch action; the repo is given as `faceplate_repo` (`owner/name`), and assets are pulled from `qrpn/assets/voyager` within it.
+
+Both `faceplate_assets_dir` and `QCELL_FACEPLATE_DIR` should point at the **assets root** (the directory that holds the per-model subfolders), for example a local qrpn-voyager checkout's `qrpn/assets/voyager`.
+
+## Pandoc for equations
+
+qcell can render LaTeX math to MathML for its equation feature. It prefers a real **pandoc** binary and resolves one in this order:
+
+1. The `PANDOC` environment variable, if it names an executable on the `PATH`.
+2. A `pandoc` executable on the `PATH`.
+3. A pandoc binary managed by the `pypandoc` package, if installed.
+
+If none is found, qcell can bootstrap one on demand by `pip install`-ing the `pypandoc_binary` wheel (which bundles the executable) and then exposing its path through the `PANDOC` environment variable. The whole process is graceful: with no network or no pip it simply reports pandoc as unavailable and falls back to a built-in subset MathML renderer — it never raises.
+
+To point qcell at a specific pandoc:
+
+```bash
+export PANDOC=/usr/local/bin/pandoc
+qcell gui
+```
+
+`qcell --deps` reports whether pandoc is available and what the fallback is.
+
+## See also
+
+- [getting-started.md](getting-started.md) — install and first-run walkthrough.
+- [cli.md](cli.md) — command-line reference (including `--deps`).
+- [gui-guide.md](gui-guide.md) — GUI menus, palette, and shortcuts.
+- [index.md](index.md) — documentation home.

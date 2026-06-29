@@ -1,0 +1,51 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Build artifacts
+build/
+dist/
+_stage/                 # pyz build-staging dir (see make_pyz.py / just pyz)
+*.egg-info/
+*.egg
+qcell.pyz               # built with `just pyz`; not source
+
+# Packaging / installer output
+*.whl
+*.tar.gz
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# qcell runtime data that may appear if run from the source tree
+# (config/cache/logs normally live in the platform dirs, not here)
+*.log
+
+# AI assistant / agent files — not part of the project
+CLAUDE.md
+GEMINI.md
+AGENTS.md
+.claude/
+.cursor/
+.cursorrules
+.aider*
+.clinerules
+.windsurfrules
+.github/copilot-instructions.md

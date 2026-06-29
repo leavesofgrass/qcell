@@ -1,0 +1,72 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qcell"
+version = "0.1.0"
+description = "A keyboard-first statistics and data-science workstation: a scriptable spreadsheet with built-in statistics, analysis, and visualization."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "GPL-3.0-or-later" }
+authors = [{ name = "leavesofgrass" }]
+keywords = ["statistics", "data-science", "data-analysis", "spreadsheet", "pandas", "csv", "excel", "tui", "qt", "vim"]
+dependencies = []   # core is stdlib-only; everything else is optional
+
+[project.optional-dependencies]
+dev      = ["pytest", "ruff==0.15.20", "build"]
+tui      = ["textual", "rich"]
+gui      = ["PySide6"]              # LGPL; the GUI also runs on PyQt6 (gui-pyqt)
+gui-pyqt = ["PyQt6"]               # GPL/commercial alternative binding
+excel    = ["openpyxl"]
+fast-io  = ["msgspec", "platformdirs"]
+all      = ["PySide6", "openpyxl", "msgspec", "platformdirs", "textual", "rich"]
+
+[project.scripts]
+qcell = "qcell.app:main"
+
+[tool.setuptools]
+packages = ["qcell", "qcell.core", "qcell.engine", "qcell.gui"]
+
+[tool.setuptools.package-data]
+"qcell.gui" = ["themes/*.qss"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+# Relaxed to lock the repo's established style rather than churn it: pre-PEP585/604
+# typing (List/Dict/Tuple, Optional, quoted self-referential annotations),
+# one-line semicolons, lambda bindings, single-letter math names, zip() without
+# strict=, bare re-raises, and unused loop/closure vars in numeric code. These are
+# deliberate conventions, not defects — real bug rules (F-series, most B, E7xx) stay on.
+ignore = [
+    "E501",   # line length
+    "UP006",  # keep typing.List/Dict/Tuple as written
+    "UP035",  # keep typing import paths as written
+    "UP037",  # keep quoted self-referential annotations
+    "UP045",  # keep Optional[...] rather than X | None
+    "UP017",  # keep datetime.timezone.utc rather than datetime.UTC
+    "E702",   # multiple statements on one line (semicolons)
+    "E731",   # lambda assignment
+    "E741",   # ambiguous single-letter names (l/I/O) in math code
+    "B905",   # zip() without an explicit strict=
+    "B904",   # raise ... from inside an except
+    "B007",   # unused loop control variable
+    "B023",   # closure does not bind the loop variable (immediate-use in solvers)
+]
+
+[tool.ruff.lint.isort]
+# The repo orders relative imports nearest-first (`.` before `..`).
+relative-imports-order = "closest-to-furthest"
+
+[tool.ruff.lint.per-file-ignores]
+# _qtcompat re-exports the Qt binding surface for the rest of the GUI; those
+# imports are intentional re-exports, not unused.
+"qcell/gui/_qtcompat.py" = ["F401"]

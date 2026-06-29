@@ -1,0 +1,57 @@
+/* High-contrast theme — text >= 7:1, yellow focus on dark. #111 not pure black
+   (pure black causes halation). WCAG AAA target. */
+
+QMainWindow, QWidget {{
+    background-color: {bg_primary};
+    color: {fg_primary};
+    font-size: 14px;
+}}
+
+QStatusBar {{
+    background-color: {bg_secondary};
+    color: {fg_primary};
+    border-top: 2px solid {border};
+}}
+
+QLineEdit {{
+    background-color: {bg_tertiary};
+    color: {fg_primary};
+    border: 2px solid {border};
+    padding: 4px 6px;
+    selection-background-color: {accent};
+    selection-color: {bg_primary};
+}}
+
+QLineEdit:focus {{
+    border: 3px solid {accent};
+}}
+
+QTableView {{
+    background-color: {bg_primary};
+    color: {fg_primary};
+    gridline-color: {border};
+    selection-background-color: {accent};
+    selection-color: {bg_primary};
+}}
+
+QTableView::item:focus {{
+    border: 2px solid {accent};
+}}
+
+QHeaderView::section {{
+    background-color: {bg_secondary};
+    color: {fg_primary};
+    border: 2px solid {border};
+    padding: 3px 6px;
+}}
+
+QMenu {{
+    background-color: {bg_secondary};
+    color: {fg_primary};
+    border: 2px solid {border};
+}}
+
+QMenu::item:selected {{
+    background-color: {accent};
+    color: {bg_primary};
+}}
