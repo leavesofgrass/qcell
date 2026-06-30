@@ -113,7 +113,7 @@ class MainWindow(NavigationMixin, DocumentMixin, SettingsMixin, QMainWindow):
         self._grid_min_rows = 200
         self._grid_min_cols = 26
         self._table.currentCellChanged.connect(self._on_current_cell_changed)
-        # Excel-style status-bar readout (Sum/Avg/Count/…) for the live selection.
+        # Excel-style status-bar readout (Sum/Avg/Count/...) for the live selection.
         self._table.selectionModel().selectionChanged.connect(
             lambda *_: self._update_selection_status())
         # Edits commit through QcellTableModel.setData -> _commit_cell (below).
@@ -125,7 +125,7 @@ class MainWindow(NavigationMixin, DocumentMixin, SettingsMixin, QMainWindow):
         ):
             header.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
             header.customContextMenuRequested.connect(handler)
-        # Right-click on the cells → the sheet context menu (clipboard / structure /
+        # Right-click on the cells -> the sheet context menu (clipboard / structure /
         # formatting / data tools), wired to the same actions as the menu bar.
         self._table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self._table.customContextMenuRequested.connect(self._cell_context_menu)
@@ -165,7 +165,7 @@ class MainWindow(NavigationMixin, DocumentMixin, SettingsMixin, QMainWindow):
         self._progress.setTextVisible(False)
         self._progress.setVisible(False)
         self.statusBar().addPermanentWidget(self._progress)
-        # State cluster on the right: vim mode · theme · saved/unsaved.
+        # State cluster on the right: vim mode - theme - saved/unsaved.
         from ._qtcompat import QLabel
 
         self._sb_vim = QLabel("", self)
@@ -215,7 +215,7 @@ class MainWindow(NavigationMixin, DocumentMixin, SettingsMixin, QMainWindow):
             self._set_status(f"sheet: {wb.sheet.name}")
 
     def _sheet_tab_menu(self, pos) -> None:
-        """Right-click a sheet tab → add / rename / duplicate / delete."""
+        """Right-click a sheet tab -> add / rename / duplicate / delete."""
         from ._qtcompat import QMenu
 
         idx = self._tabs.tabAt(pos)
@@ -226,7 +226,7 @@ class MainWindow(NavigationMixin, DocumentMixin, SettingsMixin, QMainWindow):
                 self._doc.workbook.active = idx
                 self.refresh_table()
                 self._update_title()
-            menu.addAction("Rename…", self.rename_sheet)
+            menu.addAction("Rename...", self.rename_sheet)
             menu.addAction("Duplicate", self.duplicate_sheet)
             menu.addSeparator()
             menu.addAction("Delete", self.delete_sheet)
@@ -243,8 +243,8 @@ class MainWindow(NavigationMixin, DocumentMixin, SettingsMixin, QMainWindow):
         return act
 
     def _setup_menus(self) -> None:
-        """Menu bar organised by the standard desktop convention (File · Edit · View ·
-        Insert · Format · Data · Sheet · Tools · Help), grouped into short logical
+        """Menu bar organised by the standard desktop convention (File - Edit - View -
+        Insert - Format - Data - Sheet - Tools - Help), grouped into short logical
         sections. Every action is also reachable by shortcut and the command palette."""
         from .icons import make_icon
         from ..core.format.cellformat import FORMATS
@@ -254,19 +254,19 @@ class MainWindow(NavigationMixin, DocumentMixin, SettingsMixin, QMainWindow):
         # --- File ---------------------------------------------------------
         m_file = mb.addMenu("&File")
         self._act(m_file, "&New", self.new_document, "Ctrl+N").setIcon(make_icon("new"))
-        self._act(m_file, "&Open…", lambda: self.open_document(None), "Ctrl+O").setIcon(make_icon("open"))
-        self._act(m_file, "Import &large CSV…", self.import_large_csv)
+        self._act(m_file, "&Open...", lambda: self.open_document(None), "Ctrl+O").setIcon(make_icon("open"))
+        self._act(m_file, "Import &large CSV...", self.import_large_csv)
         m_file.addSeparator()
         self._act(m_file, "&Save", lambda: self.save_document(None), "Ctrl+S").setIcon(make_icon("save"))
-        self._act(m_file, "Save &As…", self.save_document_as, "Ctrl+Shift+S")
+        self._act(m_file, "Save &As...", self.save_document_as, "Ctrl+Shift+S")
         m_file.addSeparator()
         self._act(m_file, "&Quit", self.close, "Ctrl+Q")
 
-        # --- Edit (clipboard · fill · find) -------------------------------
+        # --- Edit (clipboard - fill - find) -------------------------------
         m_edit = mb.addMenu("&Edit")
         self._act(m_edit, "&Undo", self.undo_edit, "Ctrl+Z").setIcon(make_icon("undo"))
         self._act(m_edit, "&Redo", self.redo_edit, "Ctrl+Y").setIcon(make_icon("redo"))
-        self._act(m_edit, "Undo &history…", self.show_undo_history, "Ctrl+Shift+Z")
+        self._act(m_edit, "Undo &history...", self.show_undo_history, "Ctrl+Shift+Z")
         m_edit.addSeparator()
         self._act(m_edit, "Cu&t", self.cut_selection, "Ctrl+X")
         self._act(m_edit, "&Copy", self.copy_selection, "Ctrl+C").setIcon(make_icon("copy"))
@@ -277,11 +277,11 @@ class MainWindow(NavigationMixin, DocumentMixin, SettingsMixin, QMainWindow):
         self._act(m_edit, "Fill &Right", self.fill_right_selection, "Ctrl+R")
         self._act(m_edit, "Fill &series", self._fill_series_selection)
         m_edit.addSeparator()
-        self._act(m_edit, "&Find / Replace…", self.show_find_replace, "Ctrl+F").setIcon(make_icon("find"))
-        self._act(m_edit, "&Go to…", self.show_goto, "Ctrl+G")
-        self._act(m_edit, "Command &Palette…", self.show_command_palette, "Ctrl+Shift+P").setIcon(make_icon("palette"))
+        self._act(m_edit, "&Find / Replace...", self.show_find_replace, "Ctrl+F").setIcon(make_icon("find"))
+        self._act(m_edit, "&Go to...", self.show_goto, "Ctrl+G")
+        self._act(m_edit, "Command &Palette...", self.show_command_palette, "Ctrl+Shift+P").setIcon(make_icon("palette"))
 
-        # --- View (freeze · panels · display) -----------------------------
+        # --- View (freeze - panels - display) -----------------------------
         m_view = mb.addMenu("&View")
         m_freeze = m_view.addMenu("&Freeze panes")
         self._act(m_freeze, "Freeze panes (at cursor)", lambda: self._freeze(None))
@@ -290,12 +290,12 @@ class MainWindow(NavigationMixin, DocumentMixin, SettingsMixin, QMainWindow):
         self._act(m_freeze, "&Unfreeze", lambda: self._freeze("none"))
         m_view.addSeparator()
         self._act(m_view, "&Calculator", self.toggle_calculator, "Ctrl+K").setIcon(make_icon("hp16c"))
-        self._act(m_view, "Get cell value → calculator", self.cell_to_calc, "Ctrl+Shift+G")
-        self._act(m_view, "Send calculator value → cell", self.calc_to_cells, "Ctrl+Shift+H")
+        self._act(m_view, "Get cell value -> calculator", self.cell_to_calc, "Ctrl+Shift+G")
+        self._act(m_view, "Send calculator value -> cell", self.calc_to_cells, "Ctrl+Shift+H")
         self._act(m_view, "&Terminal", self.show_terminal, "Ctrl+`").setIcon(make_icon("terminal"))
         self._act(m_view, "&Python console", self.show_pyconsole, "Ctrl+Shift+Y").setIcon(make_icon("python"))
         self._act(m_view, "Clip&board history", self.show_clipboard, "Ctrl+Shift+V")
-        self._act(m_view, "Manage clip&board…", self.manage_clipboard)
+        self._act(m_view, "Manage clip&board...", self.manage_clipboard)
         self._act(m_view, "Open default &workspace", self.open_default_workspace)
         m_view.addSeparator()
         act_tb = self._act(m_view, "Show &toolbar", self.toggle_toolbar)
@@ -311,7 +311,7 @@ class MainWindow(NavigationMixin, DocumentMixin, SettingsMixin, QMainWindow):
         self._act(m_view, "Zoom &out", self.zoom_out, "Ctrl+-")
         self._act(m_view, "&Reset zoom", self.reset_zoom, "Ctrl+0")
 
-        # --- Insert (rows/cols · objects) ---------------------------------
+        # --- Insert (rows/cols - objects) ---------------------------------
         m_insert = mb.addMenu("&Insert")
         m_rows = m_insert.addMenu("&Rows / columns")
         self._act(m_rows, "Row &above", lambda: self.insert_row(above=True), "Ctrl++").setIcon(make_icon("insert_row"))
@@ -325,11 +325,11 @@ class MainWindow(NavigationMixin, DocumentMixin, SettingsMixin, QMainWindow):
         self._act(m_rows, "&Delete row(s)", self.delete_row, "Ctrl+-").setIcon(make_icon("delete_row"))
         self._act(m_rows, "Delete &column(s)", self.delete_column).setIcon(make_icon("delete_col"))
         m_insert.addSeparator()
-        self._act(m_insert, "&Function…", self.show_formula_browser, "Shift+F3")
-        self._act(m_insert, "&Equation…", self.show_equation).setIcon(make_icon("equation"))
-        self._act(m_insert, "C&hart / graph…", self.show_graph).setIcon(make_icon("graph"))
+        self._act(m_insert, "&Function...", self.show_formula_browser, "Shift+F3")
+        self._act(m_insert, "&Equation...", self.show_equation).setIcon(make_icon("equation"))
+        self._act(m_insert, "C&hart / graph...", self.show_graph).setIcon(make_icon("graph"))
 
-        # --- Format (font · alignment · number · theme) -------------------
+        # --- Format (font - alignment - number - theme) -------------------
         m_format = mb.addMenu("F&ormat")
         self._act(m_format, "&Bold", lambda: self.toggle_style("bold"), "Ctrl+B").setIcon(make_icon("bold"))
         self._act(m_format, "&Italic", lambda: self.toggle_style("italic"), "Ctrl+I").setIcon(make_icon("italic"))
@@ -338,14 +338,14 @@ class MainWindow(NavigationMixin, DocumentMixin, SettingsMixin, QMainWindow):
         self._act(m_align, "&Left", lambda: self.set_alignment("left")).setIcon(make_icon("align_left"))
         self._act(m_align, "&Center", lambda: self.set_alignment("center")).setIcon(make_icon("align_center"))
         self._act(m_align, "&Right", lambda: self.set_alignment("right")).setIcon(make_icon("align_right"))
-        self._act(m_format, "&Text colour…", self.pick_text_color).setIcon(make_icon("text_color"))
-        self._act(m_format, "&Fill colour…", self.pick_fill_color).setIcon(make_icon("fill_color"))
+        self._act(m_format, "&Text colour...", self.pick_text_color).setIcon(make_icon("text_color"))
+        self._act(m_format, "&Fill colour...", self.pick_fill_color).setIcon(make_icon("fill_color"))
         self._act(m_format, "Clear cell st&yles", self.clear_styles)
         m_format.addSeparator()
         m_num = m_format.addMenu("&Number")
         for spec, label in FORMATS:
             self._act(m_num, label, lambda s=spec: self.set_number_format(s))
-        self._act(m_format, "&Conditional format…", self.add_conditional_format)
+        self._act(m_format, "&Conditional format...", self.add_conditional_format)
         self._act(m_format, "Clear conditional formats", self.clear_conditional_formats)
         m_format.addSeparator()
         m_theme = m_format.addMenu("&Theme")
@@ -356,60 +356,60 @@ class MainWindow(NavigationMixin, DocumentMixin, SettingsMixin, QMainWindow):
             ("High contrast", "high_contrast"),
         ]:
             self._act(m_theme, label, lambda k=key: self.set_theme(k))
-        self._act(m_format, "Choose th&eme…", self.choose_theme, "Ctrl+T")
+        self._act(m_format, "Choose th&eme...", self.choose_theme, "Ctrl+T")
 
-        # --- Data (sort/filter · names · recalc · analyze) ----------------
+        # --- Data (sort/filter - names - recalc - analyze) ----------------
         m_data = mb.addMenu("&Data")
-        self._act(m_data, "&Sort…", self.show_sort_dialog).setIcon(make_icon("sort"))
+        self._act(m_data, "&Sort...", self.show_sort_dialog).setIcon(make_icon("sort"))
         self._act(m_data, "Sort &ascending", lambda: self._sort_selection(False))
         self._act(m_data, "Sort &descending", lambda: self._sort_selection(True))
-        self._act(m_data, "&Filter…", self.show_filter_dialog).setIcon(make_icon("filter"))
+        self._act(m_data, "&Filter...", self.show_filter_dialog).setIcon(make_icon("filter"))
         self._act(m_data, "Clear filter", self.clear_filter)
         m_data.addSeparator()
-        self._act(m_data, "&Name range…", self.define_name)
-        self._act(m_data, "Name &manager…", self.show_name_manager)
-        self._act(m_data, "Data &validation…", self.show_validation_dialog)
+        self._act(m_data, "&Name range...", self.define_name)
+        self._act(m_data, "Name &manager...", self.show_name_manager)
+        self._act(m_data, "Data &validation...", self.show_validation_dialog)
         m_data.addSeparator()
         self._act(m_data, "&Recalculate", self._recalculate, "F9")
         m_data.addSeparator()
         m_analyze = m_data.addMenu("&Analyze")
-        self._act(m_analyze, "&Statistics / analysis…", self.show_stats_tool)
-        self._act(m_analyze, "Open selection in &pandas…", self.show_dataframe)
-        self._act(m_analyze, "&Recode / clean column…", self.show_recode)
-        self._act(m_analyze, "Pi&vot / group-by…", self.show_pivot)
-        self._act(m_analyze, "&Graph / chart…", self.show_graph)
+        self._act(m_analyze, "&Statistics / analysis...", self.show_stats_tool)
+        self._act(m_analyze, "Open selection in &pandas...", self.show_dataframe)
+        self._act(m_analyze, "&Recode / clean column...", self.show_recode)
+        self._act(m_analyze, "Pi&vot / group-by...", self.show_pivot)
+        self._act(m_analyze, "&Graph / chart...", self.show_graph)
 
         # --- Sheet (multi-sheet management) -------------------------------
         m_sheet = mb.addMenu("S&heet")
         self._act(m_sheet, "&New sheet", self.insert_sheet, "Shift+F11")
         self._act(m_sheet, "&Duplicate sheet", self.duplicate_sheet)
-        self._act(m_sheet, "&Rename sheet…", self.rename_sheet)
+        self._act(m_sheet, "&Rename sheet...", self.rename_sheet)
         self._act(m_sheet, "De&lete sheet", self.delete_sheet)
         m_sheet.addSeparator()
         self._act(m_sheet, "Ne&xt sheet", self.next_sheet, "Ctrl+PgDown")
         self._act(m_sheet, "&Previous sheet", self.prev_sheet, "Ctrl+PgUp")
 
-        # --- Tools (scientific · macros/scripts · calculator art) ---------
+        # --- Tools (scientific - macros/scripts - calculator art) ---------
         m_tools = mb.addMenu("&Tools")
         m_sci = m_tools.addMenu("&Scientific")
-        self._act(m_sci, "&Matrix tool…", self.show_matrix_tool)
-        self._act(m_sci, "Numerical &solver…", self.show_solver)
-        self._act(m_sci, "Si&gnal / data tool…", self.show_signal_tool)
-        self._act(m_sci, "&ODE solver…", self.show_ode_solver)
-        self._act(m_sci, "M&L tool (PCA / k-means / regression)…", self.show_ml_tool)
+        self._act(m_sci, "&Matrix tool...", self.show_matrix_tool)
+        self._act(m_sci, "Numerical &solver...", self.show_solver)
+        self._act(m_sci, "Si&gnal / data tool...", self.show_signal_tool)
+        self._act(m_sci, "&ODE solver...", self.show_ode_solver)
+        self._act(m_sci, "M&L tool (PCA / k-means / regression)...", self.show_ml_tool)
         m_tools.addSeparator()
         self._macros_menu = m_tools.addMenu("&Macros")
         self._rebuild_macros_menu()
         m_rec = m_tools.addMenu("&Recording")
         self._act(m_rec, "Start/stop recording", self._toggle_recording)
         self._act(m_rec, "Start relative recording", self._start_relative_recording)
-        self._act(m_rec, "Save recorded macro…", self._save_recording)
+        self._act(m_rec, "Save recorded macro...", self._save_recording)
         self._act(m_rec, "Replay recording", self._replay_recording)
-        self._act(m_tools, "&Load macro / UDF file…", self.load_macros)
-        self._act(m_tools, "Run Python &script…", self.run_script)
+        self._act(m_tools, "&Load macro / UDF file...", self.load_macros)
+        self._act(m_tools, "Run Python &script...", self.run_script)
         m_tools.addSeparator()
         m_face = m_tools.addMenu("Calculator &faceplates")
-        self._act(m_face, "Set image folder…", self.set_faceplate_folder)
+        self._act(m_face, "Set image folder...", self.set_faceplate_folder)
         self._act(m_tools, "Copy selection as &Markdown", self._copy_as_markdown)
 
         # --- Help ---------------------------------------------------------
@@ -496,12 +496,12 @@ class MainWindow(NavigationMixin, DocumentMixin, SettingsMixin, QMainWindow):
     # --- window state + status cluster -----------------------------------
 
     def _update_status_cluster(self) -> None:
-        """Refresh the right-side status indicators (vim · theme · saved state)."""
+        """Refresh the right-side status indicators (vim - theme - saved state)."""
         if getattr(self, "_sb_vim", None) is None:
             return
         self._sb_vim.setText("VIM" if getattr(self._settings, "vim_mode", False) else "INS")
         self._sb_theme.setText(getattr(self._settings, "theme", ""))
-        self._sb_dirty.setText("● unsaved" if getattr(self._doc, "dirty", False) else "○ saved")
+        self._sb_dirty.setText("* unsaved" if getattr(self._doc, "dirty", False) else "o saved")
 
     def _save_window_state(self) -> None:
         """Persist window geometry, the active sheet, and the cursor cell."""
@@ -669,21 +669,21 @@ class MainWindow(NavigationMixin, DocumentMixin, SettingsMixin, QMainWindow):
         fmt.addAction(make_icon("italic"), "Italic", lambda: self.toggle_style("italic"))
         fmt.addAction(make_icon("underline"), "Underline", lambda: self.toggle_style("underline"))
         fmt.addSeparator()
-        fmt.addAction(make_icon("text_color"), "Text colour…", self.pick_text_color)
-        fmt.addAction(make_icon("fill_color"), "Fill colour…", self.pick_fill_color)
+        fmt.addAction(make_icon("text_color"), "Text colour...", self.pick_text_color)
+        fmt.addAction(make_icon("fill_color"), "Fill colour...", self.pick_fill_color)
         fmt.addAction("Clear cell styles", self.clear_styles)
         num = m.addMenu("Number format")
         for spec, label in FORMATS:
             num.addAction(label, lambda s=spec: self.set_number_format(s))
-        m.addAction(make_icon("condformat"), "Conditional format…", self.add_conditional_format)
+        m.addAction(make_icon("condformat"), "Conditional format...", self.add_conditional_format)
         m.addSeparator()
 
         data = m.addMenu("Data")
         data.addAction(make_icon("sort"), "Sort ascending", lambda: self._sort_selection(False))
         data.addAction(make_icon("sort"), "Sort descending", lambda: self._sort_selection(True))
         data.addAction("Fill series", self._fill_series_selection)
-        data.addAction("Recode / clean…", self.show_recode)
-        data.addAction("Open selection in pandas…", self.show_dataframe)
+        data.addAction("Recode / clean...", self.show_recode)
+        data.addAction("Open selection in pandas...", self.show_dataframe)
         # Retain a Python ref to every submenu + action wrapper: PySide6 otherwise
         # GCs the wrappers once the build locals drop and deletes the C++ objects,
         # emptying the menu. Holding them on `m` keeps them alive as long as it is.
@@ -700,6 +700,12 @@ class MainWindow(NavigationMixin, DocumentMixin, SettingsMixin, QMainWindow):
         return m
 
     def _cell_context_menu(self, pos) -> None:
+        # Right-clicking a cell outside the current selection moves to it (Excel /
+        # gnumeric behaviour) so Paste / Clear / Format target where you clicked;
+        # right-clicking inside a multi-cell selection keeps it.
+        idx = self._table.indexAt(pos)
+        if idx.isValid() and not self._table.selectionModel().isSelected(idx):
+            self._table.setCurrentIndex(idx)
         self._build_cell_context_menu().exec(self._table.viewport().mapToGlobal(pos))
 
     def _column_header_menu(self, pos) -> None:
@@ -713,11 +719,11 @@ class MainWindow(NavigationMixin, DocumentMixin, SettingsMixin, QMainWindow):
             return
         name = index_to_col(idx)
         menu = QMenu(self)
-        menu.addAction(make_icon("sort"), f"Sort ↑ by column {name}",
+        menu.addAction(make_icon("sort"), f"Sort asc by column {name}",
                        lambda: self._sort_region_by(idx, False))
-        menu.addAction(make_icon("sort"), f"Sort ↓ by column {name}",
+        menu.addAction(make_icon("sort"), f"Sort desc by column {name}",
                        lambda: self._sort_region_by(idx, True))
-        menu.addAction(make_icon("filter"), "Filter…", self.show_filter_dialog)
+        menu.addAction(make_icon("filter"), "Filter...", self.show_filter_dialog)
         menu.addSeparator()
         menu.addAction(make_icon("insert_col"), f"Insert column left of {name}",
                        lambda: self.insert_column(at=idx))

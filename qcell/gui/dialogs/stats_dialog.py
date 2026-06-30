@@ -87,7 +87,7 @@ class StatsDialog(QDialog):
         row = QHBoxLayout()
         btn = QPushButton("Run", self)
         btn.clicked.connect(self._apply)
-        plot = QPushButton("Plot data…", self)
+        plot = QPushButton("Plot data...", self)
         plot.setToolTip("Open the grapher on the selected data (scatter / spectrum / ROC)")
         plot.clicked.connect(lambda: self._win.show_graph())
         row.addWidget(btn)

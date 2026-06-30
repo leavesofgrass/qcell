@@ -140,8 +140,8 @@ class PyConsole(QDialog):
             self._in.setFocus()
 
     def _interrupt(self) -> None:
-        self._out.appendPlainText("[interrupting…]")
-        self._bridge.interrupt()              # kills the worker → execute returns crashed
+        self._out.appendPlainText("[interrupting...]")
+        self._bridge.interrupt()              # kills the worker -> execute returns crashed
 
     # --- teardown --------------------------------------------------------
 

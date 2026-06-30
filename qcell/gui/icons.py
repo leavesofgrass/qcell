@@ -23,7 +23,7 @@ from ._qtcompat import (
 )
 
 _SIZE = 22
-_M = 4  # margin → content area ~[4, 18]
+_M = 4  # margin -> content area ~[4, 18]
 
 
 def _icon_color() -> QColor:

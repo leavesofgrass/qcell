@@ -276,6 +276,23 @@ class CellTableView(QTableView):
             event.accept()
             return
 
+        # Clipboard, owned directly by the view so it works regardless of the
+        # menu shortcut's context (a focused editor or an ambiguous WindowShortcut
+        # can otherwise swallow Ctrl+C/X/V). Qt only delivers these as a keypress
+        # when the matching shortcut did NOT fire, so there is no double action.
+        if ctrl and not shift and key == Qt.Key.Key_C:
+            self._win.copy_selection()
+            event.accept()
+            return
+        if ctrl and not shift and key == Qt.Key.Key_X:
+            self._win.cut_selection()
+            event.accept()
+            return
+        if ctrl and not shift and key == Qt.Key.Key_V:
+            self._win.paste_at_cursor()
+            event.accept()
+            return
+
         # Keys the window owns — let them propagate (palette, vim, clear).
         if text == ":" or key == Qt.Key.Key_Delete:
             event.ignore()

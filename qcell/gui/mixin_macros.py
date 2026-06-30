@@ -23,7 +23,7 @@ class MacroMixin:
         on = self._recorder.toggle()
         self._update_title()
         self._set_status(
-            "● recording — edit cells, then Save recorded macro"
+            "* recording — edit cells, then Save recorded macro"
             if on
             else f"stopped — recorded {self._recorder.count} action(s)"
         )
@@ -31,7 +31,7 @@ class MacroMixin:
     def _start_relative_recording(self) -> None:
         self._recorder.start(relative=True)
         self._update_title()
-        self._set_status("● recording (relative) — replays relative to the active cell")
+        self._set_status("* recording (relative) — replays relative to the active cell")
 
     def load_macros(self) -> None:
         """Load a macro/UDF .py file into the registry so it's immediately runnable."""

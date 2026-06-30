@@ -101,6 +101,6 @@ class EquationDialog(QDialog):
         if pandoc.available():
             self._status.setText("pandoc already available")
             return
-        self._status.setText("installing pandoc…")
+        self._status.setText("installing pandoc...")
         ok = pandoc.ensure()
         self._status.setText("pandoc installed" if ok else "pandoc install failed (offline?)")

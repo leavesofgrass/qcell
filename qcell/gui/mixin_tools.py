@@ -77,7 +77,7 @@ class ToolsMixin:
         if not actions:
             self._set_status("clipboard history is empty")
             return
-        dlg = CommandPalette(self, actions, placeholder="Filter clipboard history…")
+        dlg = CommandPalette(self, actions, placeholder="Filter clipboard history...")
         dlg.setWindowTitle("Clipboard history")
         if dlg.exec() and dlg.chosen() is not None:
             dlg.chosen()()

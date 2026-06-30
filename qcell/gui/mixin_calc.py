@@ -63,7 +63,7 @@ class CalcMixin:
             return
 
         r1, c1, r2, c2 = self._selected_bounds()
-        self._doc.checkpoint("calculator → cell")
+        self._doc.checkpoint("calculator -> cell")
         sheet = self._doc.workbook.sheet
         for r in range(r1, r2 + 1):
             for c in range(c1, c2 + 1):

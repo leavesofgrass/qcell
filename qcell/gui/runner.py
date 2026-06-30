@@ -103,7 +103,7 @@ def run_gui(file: str | None = None, registry=None) -> int:
         window.open_document(file)
     window.show()
     # Launch to a clean grid: the calculator, console, and terminal are opened on
-    # demand (shortcuts or View → Open default workspace), so a first run isn't a
+    # demand (shortcuts or View -> Open default workspace), so a first run isn't a
     # pile of panels — and the code-execution consent prompt only appears when the
     # user actually opens the console/terminal.
     try:

@@ -29,7 +29,7 @@ class FormulaBrowser(QDialog):
     def _build(self) -> None:
         layout = QVBoxLayout(self)
         self._filter = QLineEdit(self)
-        self._filter.setPlaceholderText("Filter functions…")
+        self._filter.setPlaceholderText("Filter functions...")
         self._filter.textChanged.connect(self._populate)
         layout.addWidget(self._filter)
 

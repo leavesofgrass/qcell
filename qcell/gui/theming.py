@@ -78,7 +78,7 @@ SOLARIZED = Theme(  # Solarized Dark
     border="#0e5160", success="#859900", warning="#b58900", error="#dc322f",
 )
 
-# CRT phosphor emulations. #0a… backgrounds (not pure black) avoid halation.
+# CRT phosphor emulations. #0a... backgrounds (not pure black) avoid halation.
 CRT_GREEN = Theme(  # P1 green phosphor
     bg_primary="#0a120a", bg_secondary="#050805", bg_tertiary="#0f1f0f",
     fg_primary="#33ff66", fg_secondary="#1aa31a", accent="#7dff7d",

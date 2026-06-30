@@ -48,7 +48,7 @@ class DocumentMixin:
 
         self._run_io(IOWorker("open", str(path)),
                      on_success=self._open_succeeded,
-                     busy_msg=f"opening {Path(path).name}…")
+                     busy_msg=f"opening {Path(path).name}...")
 
     def _open_succeeded(self, doc) -> None:
         self._doc = doc
@@ -162,7 +162,7 @@ class DocumentMixin:
             lambda: csv_stream.load_csv_streaming(path, max_rows=cap, coerce_types=True))
         self._run_io(worker,
                      on_success=lambda wb: self._import_succeeded(wb, path, prof),
-                     busy_msg=f"importing {Path(path).name}…")
+                     busy_msg=f"importing {Path(path).name}...")
 
     def _import_succeeded(self, wb, path, prof) -> None:
         from ..engine.document import Document
@@ -194,7 +194,7 @@ class DocumentMixin:
 
         self._run_io(IOWorker("save", str(target), snapshot),
                      on_success=lambda _obj: self._save_succeeded(target),
-                     busy_msg=f"saving {target.name}…")
+                     busy_msg=f"saving {target.name}...")
 
     def _save_succeeded(self, target) -> None:
         self._doc.path = Path(target)
@@ -900,7 +900,7 @@ class DocumentMixin:
         flag = "*" if self._doc.dirty else ""
         rec = getattr(self, "_recorder", None)
         if rec is not None and rec.recording:
-            prefix = "● REL  " if rec.relative else "● REC  "
+            prefix = "* REL  " if rec.relative else "* REC  "
         else:
             prefix = ""
         wb = self._doc.workbook

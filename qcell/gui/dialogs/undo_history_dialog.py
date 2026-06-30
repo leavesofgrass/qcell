@@ -1,6 +1,6 @@
 """Undo-history panel — a timeline of undoable/redoable actions.
 
-Lists past actions (oldest at top) → a current-state marker → future (redo)
+Lists past actions (oldest at top) -> a current-state marker -> future (redo)
 actions. Clicking a past action reverts to *before* it (undoing it and
 everything after); clicking a future action redoes up to and including it.
 Reads labels from :meth:`Document.undo_history`.
@@ -34,10 +34,10 @@ class UndoHistoryDialog(QDialog):
         if not undo_labels and not redo_labels:
             self._list.addItem("(nothing to undo yet)")
             self._actions.append(None)
-        for i, lab in enumerate(undo_labels):       # oldest → newest
+        for i, lab in enumerate(undo_labels):       # oldest -> newest
             self._list.addItem(f"↶  {lab or 'edit'}")
-            self._actions.append(("undo", n - i))   # undo (n-i) times → before this action
-        self._list.addItem("●  current state")
+            self._actions.append(("undo", n - i))   # undo (n-i) times -> before this action
+        self._list.addItem("*  current state")
         self._actions.append(None)
         for j, lab in enumerate(redo_labels):       # next-to-redo first
             self._list.addItem(f"↷  {lab or 'edit'}")

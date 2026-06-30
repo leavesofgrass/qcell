@@ -100,5 +100,5 @@ class ODEDialog(QDialog):
         self._win.refresh_table()
         self._win._set_status(
             f"ODE {self._method.currentText()}: {len(ts)} points "
-            f"(t,y → {self._out.text()})")
+            f"(t,y -> {self._out.text()})")
         self.accept()

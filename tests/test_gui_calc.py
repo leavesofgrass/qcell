@@ -159,7 +159,7 @@ def test_shortcut_actions_labeled_and_callable(win):
     assert actions
     assert all(callable(v) for v in actions.values())
     assert any("Ctrl+F" in k for k in actions)        # Find / Replace is present
-    assert any("›" in k for k in actions)             # entries carry the menu path
+    assert any(" > " in k for k in actions)           # entries carry the menu path (ASCII)
 
 
 def test_calc_model_choice_persists(win):

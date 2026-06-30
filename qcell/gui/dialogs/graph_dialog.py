@@ -28,7 +28,7 @@ class _Canvas(QWidget):
         super().__init__(parent)
         self.points: list = []
         self.heatmap: list | None = None   # frames x bins (e.g. spectrogram dB)
-        self.scatter: list | None = None   # [(x, y, (r,g,b)), …]
+        self.scatter: list | None = None   # [(x, y, (r,g,b)), ...]
         self.scatter_label: str = ""
         self.scatter_line: tuple | None = None   # (slope, intercept) overlay
         self.roc: tuple | None = None       # (fpr_list, tpr_list, auc_value)
@@ -275,7 +275,7 @@ class GraphDialog(QDialog):
         b_scatter.setToolTip("Scatter of 2 selected columns (3rd column colours the points)")
         b_scatter.clicked.connect(self._plot_scatter_cols)
         b_pca = QPushButton("PCA scatter", self)
-        b_pca.setToolTip("PCA of the selected matrix → first 2 components")
+        b_pca.setToolTip("PCA of the selected matrix -> first 2 components")
         b_pca.clicked.connect(self._plot_pca_scatter)
         b_clusters = QPushButton("Cluster scatter", self)
         b_clusters.setToolTip("k-means on the selected matrix, coloured by cluster")
@@ -359,7 +359,7 @@ class GraphDialog(QDialog):
             self._status.setText("select at least 2 numeric cells")
             return
         try:
-            # sample_rate = len(data) → x-axis is the cycle/bin index (peak = harmonic #)
+            # sample_rate = len(data) -> x-axis is the cycle/bin index (peak = harmonic #)
             freqs, mags = rfft_magnitude(data, float(len(data)))
         except FFTError as exc:
             self._status.setText(f"error: {exc}")
@@ -439,7 +439,7 @@ class GraphDialog(QDialog):
         r2 = 1 - ss_res / ss_tot
         pts = [(x, y, (136, 192, 208)) for x, y in zip(xs, ys)]
         self._canvas.set_scatter(
-            pts, f"y = {slope:.4g}·x + {intercept:.4g}   (R² = {r2:.4f})",
+            pts, f"y = {slope:.4g}-x + {intercept:.4g}   (R² = {r2:.4f})",
             line=(slope, intercept))
         self._status.setText(f"regression: slope={slope:.4g}, intercept={intercept:.4g}, R²={r2:.4f}")
 

@@ -19,7 +19,7 @@ from ...core.reference import parse_a1, parse_range, to_a1
 from ...core.science import eigen as E
 from ...core.science import matrix as M
 
-_OPS = ["Transpose", "Inverse", "Determinant", "Multiply (A·B)", "Solve (A·x=b)",
+_OPS = ["Transpose", "Inverse", "Determinant", "Multiply (A-B)", "Solve (A-x=b)",
         "Eigenvalues", "Cholesky (L)", "QR — Q", "QR — R", "Condition number"]
 
 

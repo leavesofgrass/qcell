@@ -98,7 +98,7 @@ class ViewMixin:
             return
         paths = fontmod.fetched_paths()
         if not paths and fetch:
-            self._set_status("fetching OpenDyslexic…")
+            self._set_status("fetching OpenDyslexic...")
             paths = fontmod.fetch()
         if not paths:
             self._set_status("OpenDyslexic unavailable (offline?)")
