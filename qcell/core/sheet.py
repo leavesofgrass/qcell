@@ -303,6 +303,34 @@ class Sheet:
                 f"<thead><tr><th></th>{head}</tr></thead><tbody>"
                 + "".join(body) + "</tbody></table>" + tail)
 
+    def _repr_markdown_(self) -> str:
+        """Compact Markdown table — the plain-text rich rendering used by the qcell
+        console (and any Markdown-aware frontend). Bounded tighter than the HTML
+        view so it stays readable in a terminal."""
+        from .reference import index_to_col
+
+        nr, nc = self.used_bounds()
+        if nr == 0 or nc == 0:
+            return f"**{self.name}** *(empty)*"
+        max_r, max_c = min(nr, 20), min(nc, 12)
+
+        def esc(text: str) -> str:
+            return text.replace("|", "\\|").replace("\n", " ")
+
+        header = "| | " + " | ".join(index_to_col(c) for c in range(max_c)) + " |"
+        rule = "|---" * (max_c + 1) + "|"
+        rows = []
+        for r in range(max_r):
+            cells = " | ".join(esc(self.display(r, c)) for c in range(max_c))
+            rows.append(f"| **{r + 1}** | {cells} |")
+        notes = []
+        if nr > max_r:
+            notes.append(f"{nr - max_r} more rows")
+        if nc > max_c:
+            notes.append(f"{nc - max_c} more columns")
+        tail = f"\n\n*… {', '.join(notes)}*" if notes else ""
+        return f"**{self.name}**\n\n" + "\n".join([header, rule, *rows]) + tail
+
     def recalculate(self) -> None:
         """Force a full recompute (clears caches, evaluates every cell)."""
         self._value_cache.clear()

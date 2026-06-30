@@ -31,6 +31,13 @@ All notable changes to qcell are documented here. The format follows
   speed.
 
 ### Added
+- **Rich display protocol (Jupyter roadmap Phase 1)** — a new `core/richdisplay.py`
+  implements the IPython display protocol (`_repr_mimebundle_` plus the per-format
+  `_repr_html_` / `_repr_markdown_` / … hooks, with a `text/plain` fallback). The
+  embedded Python console now echoes expression results through it, so an object
+  with a rich representation prints readably instead of an opaque `repr` — a
+  **Sheet shows as a Markdown table** in the console (and as HTML in Jupyter). Sheets
+  gained `_repr_markdown_` for the compact console view.
 - **Jupyter notebook fidelity (roadmap Phase 0)** — `.ipynb` export is now valid
   **nbformat 4.5** (per-cell `id`s) and **round-trips losslessly**: the full workbook
   envelope (formulas, multiple sheets, names, styles) rides in the notebook metadata

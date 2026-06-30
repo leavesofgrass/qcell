@@ -13,6 +13,7 @@ Wire protocol (length-prefixed JSON, 4-byte big-endian length):
 
 from __future__ import annotations
 
+import builtins
 import code
 import contextlib
 import io
@@ -22,7 +23,19 @@ import sys
 import traceback
 
 from .core.console_ns import build_namespace
+from .core.richdisplay import best_text
 from .core.workbook import Workbook
+
+
+def _displayhook(value) -> None:
+    """Echo an expression result using the rich-display protocol, so objects with
+    ``_repr_markdown_`` / ``_repr_html_`` (e.g. a Sheet) print a readable table
+    instead of an opaque ``repr``. Mirrors the stdlib hook otherwise (``None`` is
+    silent; the result is bound to ``_``)."""
+    if value is None:
+        return
+    builtins._ = value
+    sys.stdout.write(best_text(value) + "\n")
 
 
 class Worker:
@@ -41,6 +54,8 @@ class Worker:
         wb = Workbook.from_envelope(envelope)
         self.ns.update(build_namespace(wb))     # rebind workbook helpers; keep user vars
         buf = io.StringIO()
+        prev_hook = sys.displayhook
+        sys.displayhook = _displayhook
         try:
             with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
                 self.interp.runsource(source, "<console>")
@@ -48,6 +63,8 @@ class Worker:
             buf.write("(exit() is ignored in the console)\n")
         except BaseException:                    # never let user code kill the worker
             buf.write(traceback.format_exc())
+        finally:
+            sys.displayhook = prev_hook
         return {"output": buf.getvalue(), "error": None, "envelope": wb.to_envelope()}
 
 
