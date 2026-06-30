@@ -10,9 +10,15 @@ See also: [index](index.md) · [architecture](architecture.md) · [licensing](li
 
 > **Security — read this first.** Macros, the embedded Python console, the script
 > runner, and the system terminal all run **arbitrary code with your full user
-> privileges**. They are **not sandboxed**: code can read and write any file you
-> can, open network connections, and run shell commands. Only load and run code you
-> trust. Treat a downloaded macro the same way you would treat any executable.
+> privileges** — code can read and write any file you can, open network
+> connections, and run shell commands. Only load and run code you trust; treat a
+> downloaded macro the way you would treat any executable.
+>
+> The **Python console runs out-of-process** (a separate worker; the live workbook
+> is shipped to it and back each command), so a crash, hang, or runaway allocation
+> there can't take down qcell. That is **crash/memory isolation, not a security
+> sandbox** — the worker still runs with your full privileges. (Macros and the
+> script runner currently run in-process; a real security sandbox is planned.)
 >
 > The GUI gates all of these behind a one-time **consent prompt**: the first time
 > you open the console/terminal or run a script/macro, qcell warns you and asks you
