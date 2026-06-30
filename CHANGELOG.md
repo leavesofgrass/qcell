@@ -7,6 +7,12 @@ All notable changes to qcell are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- **Jupyter notebook fidelity (roadmap Phase 0)** — `.ipynb` export is now valid
+  **nbformat 4.5** (per-cell `id`s) and **round-trips losslessly**: the full workbook
+  envelope (formulas, multiple sheets, names, styles) rides in the notebook metadata
+  and is restored on import, with a graceful markdown-table fallback for foreign
+  notebooks. Sheets gained `_repr_html_` so they render as a grid in Jupyter /
+  IPython / rich-display contexts. (See the Jupyter compatibility roadmap.)
 - **Autocomplete & tab-completion, everywhere** — formula completion now offers the
   workbook's **defined names and sheet names** plus `TRUE`/`FALSE` (not just
   function names); the **in-cell editor** gained the same popup completion as the
@@ -34,6 +40,9 @@ All notable changes to qcell are documented here. The format follows
   patterns for centre-fed dipoles and uniform linear arrays (array factor), with
   numerically-integrated directivity/gain (dBi), half-power beamwidth, and polar
   pattern sampling — the first step toward full Method-of-Moments / NEC modeling.
+- **Antenna pattern viewer** (*Tools → Scientific → Antenna pattern*) — a QPainter
+  polar plot of the analytic patterns (half-/full-wave dipole, uniform linear array)
+  with directivity (dBi) and half-power beamwidth readout.
 
 ## [0.1.1] — 2026-06-30
 

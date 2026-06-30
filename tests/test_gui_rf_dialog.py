@@ -73,3 +73,23 @@ def test_smith_dialog_gamma_plot_and_paint(win, app):
 def test_smith_wired_into_window(win):
     assert callable(win.show_smith_chart)
     assert "Smith chart..." in win._palette_actions()
+
+
+def test_antenna_dialog_modes_and_paint(win, app):
+    from qcell.gui._qtcompat import QPixmap
+    from qcell.gui.dialogs.antenna_dialog import AntennaDialog
+
+    dlg = AntennaDialog(win)                                 # default: half-wave dipole
+    assert callable(dlg.field_fn())
+    assert "dBi" in dlg._readout.text() and "beamwidth" in dlg._readout.text()
+    assert len(dlg._plotw._samples) == 361
+
+    dlg._kind.setCurrentIndex(2)                             # Linear array
+    dlg._plot()
+    assert len(dlg._plotw._samples) == 361
+    dlg._plotw.render(QPixmap(240, 240))                     # exercise paintEvent (no crash)
+
+
+def test_antenna_wired_into_window(win):
+    assert callable(win.show_antenna_pattern)
+    assert "Antenna pattern..." in win._palette_actions()

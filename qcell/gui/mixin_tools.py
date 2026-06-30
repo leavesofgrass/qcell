@@ -112,6 +112,11 @@ class ToolsMixin:
 
         SmithDialog(self).exec()
 
+    def show_antenna_pattern(self) -> None:
+        from .dialogs.antenna_dialog import AntennaDialog
+
+        AntennaDialog(self).exec()
+
     def show_signal_tool(self) -> None:
         from .dialogs.signal_dialog import SignalDialog
 

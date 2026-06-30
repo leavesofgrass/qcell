@@ -101,6 +101,7 @@ class PaletteMixin:
             "Matrix tool...": self.show_matrix_tool,
             "RF toolkit...": self.show_rf_tool,
             "Smith chart...": self.show_smith_chart,
+            "Antenna pattern...": self.show_antenna_pattern,
             "Python console...": self.show_pyconsole,
             "Graph...": self.show_graph,
             "Equation editor...": self.show_equation,
