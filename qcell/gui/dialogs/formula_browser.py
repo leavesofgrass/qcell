@@ -6,7 +6,7 @@ Backed by core.completion (so user-defined functions appear automatically).
 
 from __future__ import annotations
 
-from ._qtcompat import (
+from .._qtcompat import (
     QDialog,
     QLabel,
     QLineEdit,
@@ -14,7 +14,7 @@ from ._qtcompat import (
     QPushButton,
     QVBoxLayout,
 )
-from ..core.completion import function_names, signature
+from ...core.completion import function_names, signature
 
 
 class FormulaBrowser(QDialog):

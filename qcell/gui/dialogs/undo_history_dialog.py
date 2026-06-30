@@ -8,7 +8,7 @@ Reads labels from :meth:`Document.undo_history`.
 
 from __future__ import annotations
 
-from ._qtcompat import QDialog, QLabel, QListWidget, QVBoxLayout
+from .._qtcompat import QDialog, QLabel, QListWidget, QVBoxLayout
 
 
 class UndoHistoryDialog(QDialog):

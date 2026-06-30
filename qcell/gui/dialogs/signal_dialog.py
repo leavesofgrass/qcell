@@ -8,7 +8,7 @@ like RMS in the status line).
 
 from __future__ import annotations
 
-from ._qtcompat import (
+from .._qtcompat import (
     QComboBox,
     QDialog,
     QFormLayout,
@@ -16,11 +16,11 @@ from ._qtcompat import (
     QMessageBox,
     QPushButton,
 )
-from ..core.reference import parse_a1, parse_range, to_a1
-from ..core.science import fft as F
-from ..core.science import filters as FL
-from ..core.science import signal as S
-from ..core.science import spectral as SP
+from ...core.reference import parse_a1, parse_range, to_a1
+from ...core.science import fft as F
+from ...core.science import filters as FL
+from ...core.science import signal as S
+from ...core.science import spectral as SP
 
 # label -> (handler(data, param) -> list[list[float]] | float, needs_param_hint)
 _OPS = [

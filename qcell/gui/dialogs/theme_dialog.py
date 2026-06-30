@@ -7,7 +7,7 @@ theme that was active when the dialog opened.
 
 from __future__ import annotations
 
-from ._qtcompat import (
+from .._qtcompat import (
     QColor,
     QDialog,
     QHBoxLayout,
@@ -16,7 +16,7 @@ from ._qtcompat import (
     QPushButton,
     QVBoxLayout,
 )
-from .theming import PRESETS, theme_for
+from ..theming import PRESETS, theme_for
 
 _NICE = {
     "obsidian": "Obsidian (default)",

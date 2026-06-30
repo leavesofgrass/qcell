@@ -8,7 +8,7 @@ status line.
 
 from __future__ import annotations
 
-from ._qtcompat import (
+from .._qtcompat import (
     QComboBox,
     QDialog,
     QFormLayout,
@@ -16,9 +16,9 @@ from ._qtcompat import (
     QMessageBox,
     QPushButton,
 )
-from ..core.graphing import compile_expr
-from ..core.reference import parse_a1
-from ..core.science import numeric as N
+from ...core.graphing import compile_expr
+from ...core.reference import parse_a1
+from ...core.science import numeric as N
 
 _MODES = [
     "Root — bisection [a, b]",

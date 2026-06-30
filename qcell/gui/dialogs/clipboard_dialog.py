@@ -6,7 +6,7 @@ active cell; Copy puts it back on the system clipboard.
 
 from __future__ import annotations
 
-from ._qtcompat import (
+from .._qtcompat import (
     QDialog,
     QHBoxLayout,
     QListWidget,
@@ -63,7 +63,7 @@ class ClipboardDialog(QDialog):
         _, entry = self._current()
         if entry is None:
             return
-        from ..core.fill import clip_from_tsv, paste_clip
+        from ...core.fill import clip_from_tsv, paste_clip
 
         row = max(0, self._win._table.currentRow())
         col = max(0, self._win._table.currentColumn())
@@ -75,7 +75,7 @@ class ClipboardDialog(QDialog):
         self._win._set_status("pasted from history")
 
     def _copy(self) -> None:
-        from ._qtcompat import QApplication
+        from .._qtcompat import QApplication
 
         _, entry = self._current()
         if entry is None:

@@ -11,7 +11,7 @@ regression always run; the rest report when their package isn't installed yet.
 
 from __future__ import annotations
 
-from ._qtcompat import (
+from .._qtcompat import (
     QCheckBox,
     QComboBox,
     QDialog,
@@ -24,8 +24,8 @@ from ._qtcompat import (
     QPushButton,
     QVBoxLayout,
 )
-from ..core.reference import index_to_col, parse_a1, parse_range, to_a1
-from ..engine import analysis as A
+from ...core.reference import index_to_col, parse_a1, parse_range, to_a1
+from ...engine import analysis as A
 
 
 def _is_number(value) -> bool:

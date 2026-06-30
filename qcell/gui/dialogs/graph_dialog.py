@@ -6,7 +6,7 @@ grid as a series. Backed by :mod:`qcell.core.graphing`.
 
 from __future__ import annotations
 
-from ._qtcompat import (
+from .._qtcompat import (
     QColor,
     QDialog,
     QHBoxLayout,
@@ -20,7 +20,7 @@ from ._qtcompat import (
     QVBoxLayout,
     QWidget,
 )
-from ..core.graphing import GraphError, sample
+from ...core.graphing import GraphError, sample
 
 
 class _Canvas(QWidget):
@@ -211,7 +211,7 @@ class _Canvas(QWidget):
         p.drawText(4, h - 6, f"{lbl}  x:[{xmin:g},{xmax:g}]  y:[{ymin:g},{ymax:g}]")
 
     def _paint_heatmap(self, p, w, h) -> None:
-        from ..core.format.colormap import colorize
+        from ...core.format.colormap import colorize
 
         frames = self.heatmap
         if not frames or not frames[0]:
@@ -352,7 +352,7 @@ class GraphDialog(QDialog):
         return data
 
     def _plot_spectrum(self) -> None:
-        from ..core.science.fft import FFTError, rfft_magnitude
+        from ...core.science.fft import FFTError, rfft_magnitude
 
         data = self._read_selection_series()
         if len(data) < 2:
@@ -368,7 +368,7 @@ class GraphDialog(QDialog):
         self._status.setText(f"FFT magnitude — {len(data)} samples, {len(freqs)} bins (x = cycles/window)")
 
     def _plot_spectrogram(self) -> None:
-        from ..core.science.spectral import SpectralError, spectrogram
+        from ...core.science.spectral import SpectralError, spectrogram
 
         data = self._read_selection_series()
         frame = 64 if len(data) >= 128 else max(8, len(data) // 4)
@@ -397,7 +397,7 @@ class GraphDialog(QDialog):
         return rows
 
     def _plot_scatter_cols(self) -> None:
-        from ..core.format.colormap import colorize
+        from ...core.format.colormap import colorize
 
         m = self._read_matrix()
         if len(m) < 2 or len(m[0]) < 2:
@@ -444,7 +444,7 @@ class GraphDialog(QDialog):
         self._status.setText(f"regression: slope={slope:.4g}, intercept={intercept:.4g}, R²={r2:.4f}")
 
     def _plot_pca_scatter(self) -> None:
-        from ..core.science import ml
+        from ...core.science import ml
 
         m = self._read_matrix()
         if len(m) < 2 or len(m[0]) < 2:
@@ -461,8 +461,8 @@ class GraphDialog(QDialog):
         self._status.setText("PCA scatter")
 
     def _plot_cluster_scatter(self) -> None:
-        from ..core.format.colormap import colorize
-        from ..core.science import cluster, ml
+        from ...core.format.colormap import colorize
+        from ...core.science import cluster, ml
 
         m = self._read_matrix()
         if len(m) < 2 or len(m[0]) < 1:
@@ -490,7 +490,7 @@ class GraphDialog(QDialog):
         self._status.setText(f"cluster scatter k={k}")
 
     def _plot_roc(self) -> None:
-        from ..core.science import metrics
+        from ...core.science import metrics
 
         m = self._read_matrix()
         if len(m) < 2 or len(m[0]) < 2:

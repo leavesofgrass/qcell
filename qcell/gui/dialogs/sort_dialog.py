@@ -7,14 +7,14 @@ selected range, with an optional header row, and hands them to the window's
 
 from __future__ import annotations
 
-from ._qtcompat import (
+from .._qtcompat import (
     QCheckBox,
     QComboBox,
     QDialog,
     QFormLayout,
     QPushButton,
 )
-from ..core.reference import index_to_col
+from ...core.reference import index_to_col
 
 _LEVELS = 3
 
@@ -67,7 +67,7 @@ class SortDialog(QDialog):
 
 
 def _pair(a, b):
-    from ._qtcompat import QHBoxLayout, QWidget
+    from .._qtcompat import QHBoxLayout, QWidget
 
     w = QWidget()
     lay = QHBoxLayout(w)

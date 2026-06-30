@@ -65,7 +65,7 @@ class SettingsMixin:
         self._set_zoom(1.0)
 
     def choose_theme(self) -> None:
-        from .theme_dialog import ThemeDialog
+        from .dialogs.theme_dialog import ThemeDialog
 
         ThemeDialog(self).exec()
 
@@ -222,7 +222,7 @@ class SettingsMixin:
     # --- find / replace, conditional format, function browser ------------
 
     def show_find_replace(self) -> None:
-        from .find_dialog import FindReplaceDialog
+        from .dialogs.find_dialog import FindReplaceDialog
 
         if getattr(self, "_find_dialog", None) is None:
             self._find_dialog = FindReplaceDialog(self)
@@ -231,7 +231,7 @@ class SettingsMixin:
         self._find_dialog._find.setFocus()
 
     def add_conditional_format(self) -> None:
-        from .condformat_dialog import CondFormatDialog
+        from .dialogs.condformat_dialog import CondFormatDialog
 
         CondFormatDialog(self).exec()
 
@@ -242,7 +242,7 @@ class SettingsMixin:
         self._set_status("cleared conditional formats")
 
     def show_formula_browser(self) -> None:
-        from .formula_browser import FormulaBrowser
+        from .dialogs.formula_browser import FormulaBrowser
 
         if getattr(self, "_browser_dialog", None) is None:
             self._browser_dialog = FormulaBrowser(self)
@@ -293,7 +293,7 @@ class SettingsMixin:
 
     def manage_clipboard(self) -> None:
         """The full clipboard dialog: pin, remove, clear, copy-back."""
-        from .clipboard_dialog import ClipboardDialog
+        from .dialogs.clipboard_dialog import ClipboardDialog
 
         if getattr(self, "_clip_dialog", None) is None:
             self._clip_dialog = ClipboardDialog(self)
@@ -501,32 +501,32 @@ class SettingsMixin:
                         Qt.DockWidgetArea.BottomDockWidgetArea)
 
     def show_matrix_tool(self) -> None:
-        from .matrix_dialog import MatrixDialog
+        from .dialogs.matrix_dialog import MatrixDialog
 
         MatrixDialog(self).exec()
 
     def show_solver(self) -> None:
-        from .solver_dialog import SolverDialog
+        from .dialogs.solver_dialog import SolverDialog
 
         SolverDialog(self).exec()
 
     def show_signal_tool(self) -> None:
-        from .signal_dialog import SignalDialog
+        from .dialogs.signal_dialog import SignalDialog
 
         SignalDialog(self).exec()
 
     def show_ode_solver(self) -> None:
-        from .ode_dialog import ODEDialog
+        from .dialogs.ode_dialog import ODEDialog
 
         ODEDialog(self).exec()
 
     def show_stats_tool(self) -> None:
-        from .stats_dialog import StatsDialog
+        from .dialogs.stats_dialog import StatsDialog
 
         StatsDialog(self).show()
 
     def show_dataframe(self) -> None:
-        from .dataframe_dialog import DataFrameDialog
+        from .dialogs.dataframe_dialog import DataFrameDialog
 
         DataFrameDialog(self).show()
 
@@ -540,17 +540,17 @@ class SettingsMixin:
         self._set_status(f"toolbar {'shown' if visible else 'hidden'}")
 
     def show_recode(self) -> None:
-        from .recode_dialog import RecodeDialog
+        from .dialogs.recode_dialog import RecodeDialog
 
         RecodeDialog(self).exec()
 
     def show_pivot(self) -> None:
-        from .pivot_dialog import PivotDialog
+        from .dialogs.pivot_dialog import PivotDialog
 
         PivotDialog(self).exec()
 
     def show_ml_tool(self) -> None:
-        from .ml_dialog import MLDialog
+        from .dialogs.ml_dialog import MLDialog
 
         MLDialog(self).exec()
 
@@ -572,7 +572,7 @@ class SettingsMixin:
         self._set_status(f"faceplate folder: {chosen}")
 
     def show_graph(self) -> None:
-        from .graph_dialog import GraphDialog
+        from .dialogs.graph_dialog import GraphDialog
 
         if getattr(self, "_graph_dialog", None) is None:
             self._graph_dialog = GraphDialog(self)
@@ -580,7 +580,7 @@ class SettingsMixin:
         self._graph_dialog.raise_()
 
     def show_equation(self) -> None:
-        from .equation_dialog import EquationDialog
+        from .dialogs.equation_dialog import EquationDialog
 
         if getattr(self, "_eq_dialog", None) is None:
             self._eq_dialog = EquationDialog(self)

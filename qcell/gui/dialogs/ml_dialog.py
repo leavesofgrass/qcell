@@ -7,7 +7,7 @@ Reads a numeric range as a samples×features matrix, runs an operation from
 
 from __future__ import annotations
 
-from ._qtcompat import (
+from .._qtcompat import (
     QComboBox,
     QDialog,
     QFormLayout,
@@ -15,9 +15,9 @@ from ._qtcompat import (
     QMessageBox,
     QPushButton,
 )
-from ..core.reference import parse_a1, parse_range, to_a1
-from ..core.science import cluster as CL
-from ..core.science import ml as ML
+from ...core.reference import parse_a1, parse_range, to_a1
+from ...core.science import cluster as CL
+from ...core.science import ml as ML
 
 _OPS = [
     "PCA (param = #components)",
@@ -83,8 +83,8 @@ class MLDialog(QDialog):
                 for r in range(r1, r2 + 1)]
 
     def _classify(self, op: str, X) -> None:
-        from ..core.science import bayes, trees
-        from ..core.science.metrics import accuracy
+        from ...core.science import bayes, trees
+        from ...core.science.metrics import accuracy
 
         xs = [row[:-1] for row in X]
         ys = self._read_labels()
@@ -123,7 +123,7 @@ class MLDialog(QDialog):
                 self._win._set_status(
                     f"k-means: k={k}, inertia={inertia:.4g} (labels written)")
             elif op.startswith("GMM"):
-                from ..core.science.gmm import GaussianMixture
+                from ...core.science.gmm import GaussianMixture
 
                 k = int(float(self._param.text()))
                 gm = GaussianMixture(k, seed=0).fit(X)

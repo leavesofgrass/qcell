@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ._qtcompat import (
+from .._qtcompat import (
     QDialog,
     QHBoxLayout,
     QListWidget,
@@ -44,7 +44,7 @@ class NameManagerDialog(QDialog):
     def _goto(self) -> None:
         i = self._selected_index()
         if 0 <= i < len(self._targets):
-            from ..core.navigation import parse_target
+            from ...core.navigation import parse_target
 
             tgt = parse_target(self._targets[i].split("!")[-1])
             self._win._table.setCurrentCell(tgt[0], tgt[1])

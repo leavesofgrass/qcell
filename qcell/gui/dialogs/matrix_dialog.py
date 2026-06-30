@@ -7,7 +7,7 @@ starting at a target cell (or reports a scalar in the status line).
 
 from __future__ import annotations
 
-from ._qtcompat import (
+from .._qtcompat import (
     QComboBox,
     QDialog,
     QFormLayout,
@@ -15,9 +15,9 @@ from ._qtcompat import (
     QMessageBox,
     QPushButton,
 )
-from ..core.reference import parse_a1, parse_range, to_a1
-from ..core.science import eigen as E
-from ..core.science import matrix as M
+from ...core.reference import parse_a1, parse_range, to_a1
+from ...core.science import eigen as E
+from ...core.science import matrix as M
 
 _OPS = ["Transpose", "Inverse", "Determinant", "Multiply (A·B)", "Solve (A·x=b)",
         "Eigenvalues", "Cholesky (L)", "QR — Q", "QR — R", "Condition number"]

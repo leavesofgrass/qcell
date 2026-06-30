@@ -6,7 +6,7 @@ and persists with the workbook. Visualizes value relationships at a glance.
 
 from __future__ import annotations
 
-from ._qtcompat import (
+from .._qtcompat import (
     QColor,
     QColorDialog,
     QComboBox,
@@ -16,8 +16,8 @@ from ._qtcompat import (
     QLineEdit,
     QPushButton,
 )
-from ..core.format.condformat import CondRule
-from ..core.reference import to_a1
+from ...core.format.condformat import CondRule
+from ...core.reference import to_a1
 
 _KINDS = [">", "<", ">=", "<=", "==", "!=", "between", "contains", "blank", "notblank", "colorscale"]
 

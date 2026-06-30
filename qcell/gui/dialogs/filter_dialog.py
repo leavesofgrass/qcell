@@ -7,14 +7,14 @@ row hiding). Matching logic lives in :mod:`qcell.core.sortfilter`.
 
 from __future__ import annotations
 
-from ._qtcompat import (
+from .._qtcompat import (
     QComboBox,
     QDialog,
     QFormLayout,
     QLineEdit,
     QPushButton,
 )
-from ..core.reference import index_to_col
+from ...core.reference import index_to_col
 
 _OPS = [
     ("contains", "contains"),
@@ -43,7 +43,7 @@ class FilterDialog(QDialog):
         self._build()
 
     def _build(self) -> None:
-        from ._qtcompat import QHBoxLayout, QWidget
+        from .._qtcompat import QHBoxLayout, QWidget
 
         form = QFormLayout(self)
         _r1, c1, _r2, c2 = self._bounds

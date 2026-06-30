@@ -9,7 +9,7 @@ console via ``ode.solve`` with a vector field.)
 
 from __future__ import annotations
 
-from ._qtcompat import (
+from .._qtcompat import (
     QComboBox,
     QDialog,
     QFormLayout,
@@ -17,9 +17,9 @@ from ._qtcompat import (
     QMessageBox,
     QPushButton,
 )
-from ..core.graphing import _SAFE_NAMES
-from ..core.reference import parse_a1
-from ..core.science import ode, ode_implicit
+from ...core.graphing import _SAFE_NAMES
+from ...core.reference import parse_a1
+from ...core.science import ode, ode_implicit
 
 _EXPLICIT = ("rk4", "rk45", "euler")
 _STIFF = ("backward_euler", "implicit_trapezoid", "bdf2")

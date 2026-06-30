@@ -8,7 +8,7 @@ head preview. ``describe()`` can be written back into the sheet. Requires pandas
 
 from __future__ import annotations
 
-from ._qtcompat import (
+from .._qtcompat import (
     QDialog,
     QHBoxLayout,
     QMessageBox,
@@ -16,8 +16,8 @@ from ._qtcompat import (
     QPushButton,
     QVBoxLayout,
 )
-from ..core import typeinfer
-from ..core.reference import index_to_col, to_a1
+from ...core import typeinfer
+from ...core.reference import index_to_col, to_a1
 
 
 class DataFrameDialog(QDialog):

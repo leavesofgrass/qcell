@@ -6,7 +6,7 @@ through matches; Replace All rewrites every matching cell and refreshes.
 
 from __future__ import annotations
 
-from ._qtcompat import (
+from .._qtcompat import (
     QCheckBox,
     QDialog,
     QFormLayout,
@@ -16,7 +16,7 @@ from ._qtcompat import (
     QPushButton,
     QVBoxLayout,
 )
-from ..core.search import SearchError, SearchOptions, find_all, replace_all
+from ...core.search import SearchError, SearchOptions, find_all, replace_all
 
 
 class FindReplaceDialog(QDialog):
@@ -87,7 +87,7 @@ class FindReplaceDialog(QDialog):
         ranges = self._win._table.selectedRanges()
         if not ranges:
             return None
-        from ..core.reference import to_a1
+        from ...core.reference import to_a1
 
         r = ranges[0]
         return (f"{to_a1(r.topRow(), r.leftColumn())}:"
@@ -116,7 +116,7 @@ class FindReplaceDialog(QDialog):
         self._idx += 1
 
     def replace_current(self) -> None:
-        from ..core.search import replace_match
+        from ...core.search import replace_match
 
         if not self._matches:
             self.find_next()

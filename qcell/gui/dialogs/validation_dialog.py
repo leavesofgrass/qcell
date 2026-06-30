@@ -7,15 +7,15 @@ editor; number/text rules reject invalid entries on commit.
 
 from __future__ import annotations
 
-from ._qtcompat import (
+from .._qtcompat import (
     QComboBox,
     QDialog,
     QFormLayout,
     QLineEdit,
     QPushButton,
 )
-from ..core import validation as V
-from ..core.reference import to_a1
+from ...core import validation as V
+from ...core.reference import to_a1
 
 _KINDS = [
     ("list", "Dropdown list (comma-separated values)"),
@@ -57,7 +57,7 @@ class ValidationDialog(QDialog):
         self._p2 = QLineEdit(self)
         self._p1.setPlaceholderText("list values (a, b, c) — or lower bound")
         self._p2.setPlaceholderText("upper bound (for between)")
-        from ._qtcompat import QLabel
+        from .._qtcompat import QLabel
 
         form.addRow(QLabel(f"Range: {rng}", self))
         form.addRow("Allow:", self._kind)

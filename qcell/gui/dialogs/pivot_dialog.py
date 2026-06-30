@@ -7,7 +7,7 @@ cross-tabulates two columns. The result block is written back into the sheet.
 
 from __future__ import annotations
 
-from ._qtcompat import (
+from .._qtcompat import (
     QComboBox,
     QDialog,
     QFormLayout,
@@ -16,8 +16,8 @@ from ._qtcompat import (
     QPushButton,
     QVBoxLayout,
 )
-from ..core import pivot as P
-from ..core.reference import parse_a1, parse_range, to_a1
+from ...core import pivot as P
+from ...core.reference import parse_a1, parse_range, to_a1
 
 _MODES = ["Group by", "Pivot table", "Cross-tab"]
 

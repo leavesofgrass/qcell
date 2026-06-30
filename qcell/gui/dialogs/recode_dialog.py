@@ -7,7 +7,7 @@ single *Options* field is interpreted per operation (a live hint shows the form)
 
 from __future__ import annotations
 
-from ._qtcompat import (
+from .._qtcompat import (
     QComboBox,
     QDialog,
     QFormLayout,
@@ -17,8 +17,8 @@ from ._qtcompat import (
     QPushButton,
     QVBoxLayout,
 )
-from ..core import recode as R
-from ..core.reference import parse_range, to_a1
+from ...core import recode as R
+from ...core.reference import parse_range, to_a1
 
 # per-op hint for the Options field
 _HINTS = {

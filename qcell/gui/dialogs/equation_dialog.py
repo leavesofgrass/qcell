@@ -7,7 +7,7 @@ converter), and can drop the result into the active cell or the clipboard.
 
 from __future__ import annotations
 
-from ._qtcompat import (
+from .._qtcompat import (
     QDialog,
     QFont,
     QHBoxLayout,
@@ -17,7 +17,7 @@ from ._qtcompat import (
     QPushButton,
     QVBoxLayout,
 )
-from ..core.latexmath import to_mathml, to_unicode
+from ...core.latexmath import to_mathml, to_unicode
 
 
 class EquationDialog(QDialog):
@@ -72,7 +72,7 @@ class EquationDialog(QDialog):
             self._preview.setText(f"(preview error: {exc})")
 
     def _gen_mathml(self) -> None:
-        from ..core import pandoc
+        from ...core import pandoc
 
         self._mathml.setPlainText(to_mathml(self._latex.text()))
         self._status.setText("pandoc MathML" if pandoc.available() else "built-in MathML (no pandoc)")
@@ -86,7 +86,7 @@ class EquationDialog(QDialog):
         self._status.setText("inserted Unicode equation into cell")
 
     def _copy_mathml(self) -> None:
-        from ._qtcompat import QApplication
+        from .._qtcompat import QApplication
 
         if not self._mathml.toPlainText():
             self._gen_mathml()
@@ -96,7 +96,7 @@ class EquationDialog(QDialog):
         self._status.setText("MathML copied to clipboard")
 
     def _get_pandoc(self) -> None:
-        from ..core import pandoc
+        from ...core import pandoc
 
         if pandoc.available():
             self._status.setText("pandoc already available")

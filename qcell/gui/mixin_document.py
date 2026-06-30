@@ -278,12 +278,12 @@ class DocumentMixin:
         return (r1, c1, r2, c2)
 
     def show_sort_dialog(self) -> None:
-        from .sort_dialog import SortDialog
+        from .dialogs.sort_dialog import SortDialog
 
         SortDialog(self).exec()
 
     def show_filter_dialog(self) -> None:
-        from .filter_dialog import FilterDialog
+        from .dialogs.filter_dialog import FilterDialog
 
         FilterDialog(self).exec()
 
@@ -403,14 +403,14 @@ class DocumentMixin:
         self._set_status(f"named {name.strip()} = {target}")
 
     def show_name_manager(self) -> None:
-        from .name_manager_dialog import NameManagerDialog
+        from .dialogs.name_manager_dialog import NameManagerDialog
 
         NameManagerDialog(self).exec()
 
     # --- data validation -------------------------------------------------
 
     def show_validation_dialog(self) -> None:
-        from .validation_dialog import ValidationDialog
+        from .dialogs.validation_dialog import ValidationDialog
 
         ValidationDialog(self).exec()
 
@@ -651,7 +651,7 @@ class DocumentMixin:
         self._set_status("redo")
 
     def show_undo_history(self) -> None:
-        from .undo_history_dialog import UndoHistoryDialog
+        from .dialogs.undo_history_dialog import UndoHistoryDialog
 
         dlg = getattr(self, "_undo_history_dialog", None)
         if dlg is None:
