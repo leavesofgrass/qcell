@@ -57,13 +57,23 @@ All notable changes to qcell are documented here. The format follows
 - **Smith chart** (*Tools → Scientific → Smith chart*) — a QPainter Smith chart that
   plots a load impedance and its reflection coefficient, reports VSWR / return loss,
   and computes the two L-network matching solutions.
+- **Thin-wire Method of Moments (antenna Phase B)** — `core/science/mom.py`: a real
+  multi-segment MoM for a center-fed dipole. The current is expanded in
+  piecewise-sinusoidal basis functions, the EFIE is tested Galerkin-style (kernel
+  integrated by Gauss-Legendre quadrature; a stdlib complex Gaussian solver), and
+  the feed impedance is read off the solved current. With a single basis it
+  reproduces the induced-EMF impedance to 5 significant figures (a rigorous
+  correctness check); with a finer mesh it converges to the physically-correct
+  ~85 + 45j Ω of a real 0.5 λ dipole (just past resonance), in agreement with NEC.
+  Available in the Python console as `mom`. The next antenna step is bent/multi-wire
+  geometries and a PyNEC adapter.
 - **Dipole input impedance (induced-EMF method)** — `core/science/antenna_impedance.py`
   computes the center-fed thin-wire dipole impedance in closed form (sine/cosine
   integrals), reproducing the textbook half-wave result **73.1 + j42.5 Ω** and the
   finite-radius shortening to resonance (X = 0 near 0.47–0.48 λ). Formula functions
   `DIPOLER` / `DIPOLEX` (input R / X), `RADRESIST` (radiation resistance) and
   `RESONANTLEN` (resonant length vs wire radius). This analytic model is the
-  validation oracle for the multi-segment Method-of-Moments solver still to come.
+  validation oracle for the multi-segment Method-of-Moments solver above.
 - **Antenna pattern math (Phase A)** — `core/science/antenna.py`: analytic far-field
   patterns for centre-fed dipoles and uniform linear arrays (array factor), with
   numerically-integrated directivity/gain (dBi), half-power beamwidth, and polar

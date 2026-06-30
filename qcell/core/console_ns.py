@@ -124,6 +124,8 @@ def build_namespace(workbook, refresh=None) -> dict:
     from .calc.rpn import RPN
     from .graphing import compile_expr
     from .science import (
+        antenna,
+        antenna_impedance,
         bayes,
         cluster,
         complexnum,
@@ -136,10 +138,13 @@ def build_namespace(workbook, refresh=None) -> dict:
         matrix,
         metrics,
         ml,
+        mom,
         numeric,
         ode,
         ode_implicit,
         resynth,
+        rf,
+        rf_bands,
         signal,
         spectral,
         stats,
@@ -169,6 +174,8 @@ def build_namespace(workbook, refresh=None) -> dict:
         "ode_implicit": ode_implicit, "resynth": resynth, "stats": stats,
         "cluster": cluster, "ml": ml, "trees": trees, "bayes": bayes,
         "metrics": metrics, "gmm": gmm, "financial": financial,
+        "rf": rf, "rf_bands": rf_bands, "antenna": antenna,
+        "antenna_impedance": antenna_impedance, "mom": mom,
         "algebraic": algebraic, "ti_engine": ti_engine,
         "np": _np, "numpy": _np, "pd": _pd, "pandas": _pd, "scipy": _scipy,
         "sm": _sm, "statsmodels": _sm, "sklearn": _sklearn,
