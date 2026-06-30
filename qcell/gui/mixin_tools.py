@@ -97,6 +97,11 @@ class ToolsMixin:
 
         MatrixDialog(self).exec()
 
+    def show_budget_wizard(self) -> None:
+        from .dialogs.budget_dialog import BudgetWizard
+
+        BudgetWizard(self).exec()
+
     def show_file_manager(self) -> None:
         from .dialogs.filemanager_dialog import FileManagerDialog
 

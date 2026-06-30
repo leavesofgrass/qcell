@@ -31,6 +31,14 @@ All notable changes to qcell are documented here. The format follows
   speed.
 
 ### Added
+- **Budgeting tools** (*Tools → Budget wizard*) — a guided dialog to set up and
+  track expenses: enter monthly income, seed categories from the **50/30/20 rule**
+  (or start blank), tweak the amounts, and *Create budget sheet*. It drops a **live
+  budget worksheet** into the workbook — a Category / Budgeted / Spent / Remaining
+  table where **Spent is a `SUMIF`** over an Expenses log and Remaining is
+  `Budgeted − Spent`, so logging an expense updates the budget through qcell's own
+  formula engine. Backed by a new pure-stdlib `core/budget.py` (model + worksheet
+  builder), fully tested including an end-to-end recompute.
 - **Dual-pane file manager** (*Tools → File manager*, `Ctrl+Shift+F`) — a Worker /
   Directory Opus-style browser: two independent panes where operations act on the
   active pane's selection with the other pane as the target. Copy / move / delete /
