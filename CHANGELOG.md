@@ -4,7 +4,7 @@ All notable changes to qcell are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project aims to follow
 [Semantic Versioning](https://semver.org/).
 
-## [0.1.1]
+## [0.1.1] — 2026-06-30
 
 ### Added
 - **Right-click context menu on the grid** — clipboard (cut/copy/paste, copy as
@@ -98,5 +98,5 @@ Initial public release.
 - Tag-driven CI builds and publishes the wheel, sdist, and `qcell.pyz` to GitHub
   Releases.
 
-[0.1.1]: https://github.com/leavesofgrass/qcell/compare/v0.1.0...HEAD
+[0.1.1]: https://github.com/leavesofgrass/qcell/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/leavesofgrass/qcell/releases/tag/v0.1.0
