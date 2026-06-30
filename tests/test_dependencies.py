@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from qcell import diagnostics
 from qcell.core import Sheet
-from qcell.core.csv_io import dumps_csv, loads_csv
+from qcell.core.io.csv_io import dumps_csv, loads_csv
 
 
 def test_core_imports_without_optional_deps():

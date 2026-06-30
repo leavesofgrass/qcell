@@ -133,7 +133,7 @@ class DocumentMixin:
     def import_large_csv(self) -> None:
         """Stream-import a (possibly huge) CSV with type inference + an optional row cap."""
         from ._qtcompat import QFileDialog, QInputDialog, QMessageBox
-        from ..core import csv_stream
+        from ..core.io import csv_stream
 
         path, _ = QFileDialog.getOpenFileName(
             self, "Import large CSV (streaming)", "",

@@ -21,9 +21,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .reference import to_a1
-from .sheet import Sheet
-from .workbook import Workbook
+from ..reference import to_a1
+from ..sheet import Sheet
+from ..workbook import Workbook
 
 
 def looks_like_workbook(obj: Any) -> bool:

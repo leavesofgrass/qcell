@@ -12,8 +12,8 @@ import re
 from pathlib import Path
 
 from .markdown_io import from_markdown, to_markdown
-from .sheet import Sheet
-from .workbook import Workbook
+from ..sheet import Sheet
+from ..workbook import Workbook
 
 _IDENT = re.compile(r"\W+")
 _HEADING = re.compile(r"^#{1,6}\s+(.*)$")
@@ -84,7 +84,7 @@ def _dataframe_source(sheet: Sheet) -> str:
 
 
 def _py_literal(value) -> str:
-    from .errors import CellError
+    from ..errors import CellError
 
     if value is None:
         return "None"

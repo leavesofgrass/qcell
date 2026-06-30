@@ -6,7 +6,7 @@ spreadsheet XML. We read/write that XML directly with :mod:`zipfile` and
 dependency (no odfpy/ezodf). It lives in ``engine/`` only because it is an
 optional file-format adapter; :func:`available` is always ``True``.
 
-A Workbook/Sheet is built exactly the way :mod:`qcell.core.csv_io` does it —
+A Workbook/Sheet is built exactly the way :mod:`qcell.core.io.csv_io` does it —
 ``Sheet`` + ``set_cell`` followed by ``Workbook.from_sheets`` — so the data
 model stays identical across importers.
 """

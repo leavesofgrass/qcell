@@ -10,8 +10,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from .sheet import Sheet
-from .workbook import Workbook
+from ..sheet import Sheet
+from ..workbook import Workbook
 
 _IDENT = re.compile(r"\W+")
 
@@ -24,7 +24,7 @@ def _ident(name: str) -> str:
 
 
 def _r_value(value) -> str:
-    from .errors import CellError
+    from ..errors import CellError
 
     if value is None:
         return "NA"

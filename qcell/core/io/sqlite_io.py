@@ -15,9 +15,9 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from .reference import index_to_col
-from .sheet import Sheet
-from .workbook import Workbook
+from ..reference import index_to_col
+from ..sheet import Sheet
+from ..workbook import Workbook
 
 
 def _quote_ident(name: str) -> str:

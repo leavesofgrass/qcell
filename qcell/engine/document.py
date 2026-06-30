@@ -11,7 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from . import excel_io
-from ..core import csv_io, exchange_io, flatfile_io, markdown_io, notebook_io, r_io, xml_io
+from ..core.io import csv_io, exchange_io, flatfile_io, markdown_io, notebook_io, r_io, xml_io
 from ..core.workbook import Workbook
 
 
@@ -93,7 +93,7 @@ class Document:
         elif ext in (".fixed",):
             wb = _single(flatfile_io.load_fixed(path))
         elif ext in (".db", ".sqlite", ".sqlite3"):
-            from ..core import sqlite_io
+            from ..core.io import sqlite_io
 
             wb = sqlite_io.load_database(path)
         elif ext in (".xlsx", ".xlsm"):
@@ -134,7 +134,7 @@ class Document:
         elif ext in (".fixed",):
             flatfile_io.save_fixed(self.workbook.sheet, target)
         elif ext in (".db", ".sqlite", ".sqlite3"):
-            from ..core import sqlite_io
+            from ..core.io import sqlite_io
 
             sqlite_io.save_table(self.workbook.sheet, target, self.workbook.sheet.name or "Sheet1")
         elif ext in (".xlsx", ".xlsm"):

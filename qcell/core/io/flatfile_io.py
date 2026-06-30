@@ -20,7 +20,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from .sheet import Sheet
+from ..sheet import Sheet
 
 __all__ = [
     "loads_jsonl",

@@ -10,8 +10,8 @@ import csv
 import io
 from pathlib import Path
 
-from .reference import to_a1
-from .sheet import Sheet
+from ..reference import to_a1
+from ..sheet import Sheet
 
 
 def load_csv(path: str | Path, name: str | None = None, delimiter: str = ",") -> Sheet:

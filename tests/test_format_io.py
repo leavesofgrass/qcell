@@ -5,10 +5,10 @@ from __future__ import annotations
 import json
 
 from qcell.core import Sheet
-from qcell.core.exchange_io import workbook_from_json
-from qcell.core.markdown_io import from_markdown, to_markdown
-from qcell.core.notebook_io import from_notebook, to_notebook
-from qcell.core.r_io import from_r, to_r
+from qcell.core.io.exchange_io import workbook_from_json
+from qcell.core.io.markdown_io import from_markdown, to_markdown
+from qcell.core.io.notebook_io import from_notebook, to_notebook
+from qcell.core.io.r_io import from_r, to_r
 from qcell.core.workbook import Workbook
 
 

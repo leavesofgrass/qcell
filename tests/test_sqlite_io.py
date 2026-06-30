@@ -1,11 +1,11 @@
-"""Tests for qcell.core.sqlite_io — SQLite import/export round-trips."""
+"""Tests for qcell.core.io.sqlite_io — SQLite import/export round-trips."""
 
 from __future__ import annotations
 
 import sqlite3
 
 from qcell.core.sheet import Sheet
-from qcell.core.sqlite_io import (
+from qcell.core.io.sqlite_io import (
     list_tables,
     load_database,
     load_table,

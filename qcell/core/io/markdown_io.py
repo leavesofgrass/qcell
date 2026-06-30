@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .reference import index_to_col
-from .sheet import Sheet
+from ..reference import index_to_col
+from ..sheet import Sheet
 
 _ALIGN_MARK = {"l": ":---", "c": ":---:", "r": "---:"}
 

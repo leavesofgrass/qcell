@@ -673,7 +673,7 @@ class SettingsMixin:
     def _copy_as_markdown(self) -> None:
         from ._qtcompat import QApplication
         from ..core.fill import copy_region
-        from ..core.markdown_io import to_markdown
+        from ..core.io.markdown_io import to_markdown
         from ..core.sheet import Sheet
 
         clip = copy_region(self._doc.workbook.sheet, self._selected_bounds())

@@ -137,7 +137,7 @@ def test_fill_preserves_sheet_qualifier():
 
 
 def test_xml_roundtrip_cross_sheet():
-    from qcell.core.xml_io import from_spreadsheetml, to_spreadsheetml
+    from qcell.core.io.xml_io import from_spreadsheetml, to_spreadsheetml
 
     wb = _two_sheet_wb()
     wb.sheet.set("A1", "=Data!A2")

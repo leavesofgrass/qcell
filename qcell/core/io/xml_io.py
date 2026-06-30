@@ -12,10 +12,10 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from xml.sax.saxutils import escape, quoteattr
 
-from .errors import CellError
-from .r1c1 import formula_a1_to_r1c1, formula_r1c1_to_a1
-from .sheet import Sheet
-from .workbook import Workbook
+from ..errors import CellError
+from ..r1c1 import formula_a1_to_r1c1, formula_r1c1_to_a1
+from ..sheet import Sheet
+from ..workbook import Workbook
 
 _NS = "urn:schemas-microsoft-com:office:spreadsheet"
 _SS = "{" + _NS + "}"

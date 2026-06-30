@@ -38,8 +38,8 @@ all      = ["qcell[thin,parquet,science]"]
 [project.scripts]
 qcell = "qcell.app:main"
 
-[tool.setuptools]
-packages = ["qcell", "qcell.core", "qcell.engine", "qcell.gui"]
+[tool.setuptools.packages.find]
+include = ["qcell*"]   # auto-discover qcell and all subpackages (core/io, core/calc, …)
 
 [tool.setuptools.package-data]
 "qcell.gui" = ["themes/*.qss"]

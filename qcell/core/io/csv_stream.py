@@ -24,8 +24,8 @@ import io
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .sheet import Sheet
-from .typeinfer import coerce, infer_column_type
+from ..sheet import Sheet
+from ..typeinfer import coerce, infer_column_type
 
 # Files below this size are counted exactly; larger ones are estimated from the
 # average physical line length versus the on-disk byte size.
@@ -252,7 +252,7 @@ def load_csv_streaming(
     Raises :class:`CsvStreamError` via :func:`sniff_csv` for unreadable/empty
     files.
     """
-    from .workbook import Workbook
+    from ..workbook import Workbook
 
     path = Path(path)
     profile = sniff_csv(path)

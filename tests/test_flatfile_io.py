@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from qcell.core.flatfile_io import (
+from qcell.core.io.flatfile_io import (
     dumps_fixed,
     dumps_jsonl,
     load_fixed,
