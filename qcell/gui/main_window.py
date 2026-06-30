@@ -398,6 +398,7 @@ class MainWindow(NavigationMixin, DocumentMixin, SettingsMixin, QMainWindow):
         self._act(m_sci, "&ODE solver...", self.show_ode_solver)
         self._act(m_sci, "M&L tool (PCA / k-means / regression)...", self.show_ml_tool)
         self._act(m_sci, "&RF toolkit...", self.show_rf_tool)
+        self._act(m_sci, "Smith &chart...", self.show_smith_chart)
         m_tools.addSeparator()
         self._macros_menu = m_tools.addMenu("&Macros")
         self._rebuild_macros_menu()

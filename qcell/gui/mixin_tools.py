@@ -107,6 +107,11 @@ class ToolsMixin:
 
         RFDialog(self).exec()
 
+    def show_smith_chart(self) -> None:
+        from .dialogs.smith_dialog import SmithDialog
+
+        SmithDialog(self).exec()
+
     def show_signal_tool(self) -> None:
         from .dialogs.signal_dialog import SignalDialog
 

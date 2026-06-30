@@ -52,3 +52,24 @@ def test_rf_dialog_each_mode_computes(win):
 def test_rf_dialog_is_wired_into_window(win):
     assert callable(win.show_rf_tool)
     assert "RF toolkit..." in win._palette_actions()
+
+
+def test_smith_dialog_gamma_plot_and_paint(win, app):
+    from qcell.gui._qtcompat import QPixmap
+    from qcell.gui.dialogs.smith_dialog import SmithDialog
+
+    dlg = SmithDialog(win)                                  # defaults R=75, X=25, Z0=50
+    expect = (complex(75, 25) - 50) / (complex(75, 25) + 50)
+    assert abs(dlg.gamma() - expect) < 1e-9
+
+    dlg._plot()
+    assert len(dlg._chart._points) == 2                     # load point + matched (centre)
+    assert "VSWR" in dlg._readout.text() and "Return loss" in dlg._readout.text()
+
+    pm = QPixmap(240, 240)                                  # exercise paintEvent (no crash)
+    dlg._chart.render(pm)
+
+
+def test_smith_wired_into_window(win):
+    assert callable(win.show_smith_chart)
+    assert "Smith chart..." in win._palette_actions()

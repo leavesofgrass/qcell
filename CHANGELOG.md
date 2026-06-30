@@ -27,6 +27,9 @@ All notable changes to qcell are documented here. The format follows
   for **link budget**, **coax line**, **antenna dimensions**, and **L-network
   matching**, with results shown in both metric and imperial where it helps
   (antenna lengths in m and ft).
+- **Smith chart** (*Tools → Scientific → Smith chart*) — a QPainter Smith chart that
+  plots a load impedance and its reflection coefficient, reports VSWR / return loss,
+  and computes the two L-network matching solutions.
 
 ## [0.1.1] — 2026-06-30
 
