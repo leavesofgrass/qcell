@@ -1703,6 +1703,38 @@ def _rf_nearest_ctcss(args):
         return CellError(CellError.VALUE)
 
 
+def _ant_z_component(part: str):
+    def wrapper(args):
+        from .science import antenna_impedance as A
+        try:
+            length = _as_number(_arg(args, 0))
+            rad = _arg(args, 1, None)
+            radius = _as_number(rad) if rad not in (None, "") else 1e-4
+            z = A.dipole_input_impedance(length, radius)
+        except (ValueError, TypeError, ZeroDivisionError):
+            return CellError(CellError.NUM)
+        return z.real if part == "r" else z.imag
+    return wrapper
+
+
+def _ant_radres(args):
+    from .science import antenna_impedance as A
+    try:
+        return A.radiation_resistance(_as_number(_arg(args, 0)))
+    except (ValueError, TypeError):
+        return CellError(CellError.NUM)
+
+
+def _ant_resonant(args):
+    from .science import antenna_impedance as A
+    try:
+        rad = _arg(args, 0, None)
+        radius = _as_number(rad) if rad not in (None, "") else 1e-4
+        return A.resonant_length(radius)
+    except (ValueError, TypeError):
+        return CellError(CellError.NUM)
+
+
 _R = _RF_REQUIRED
 FUNCTIONS.update({
     "DBM2W": _rf_numeric("dbm_to_w", (_R,)),
@@ -1748,4 +1780,8 @@ FUNCTIONS.update({
     "HAMBAND": _rf_hamband,
     "CTCSSTONE": _rf_ctcss_tone,
     "NEARESTCTCSS": _rf_nearest_ctcss,
+    "DIPOLER": _ant_z_component("r"),
+    "DIPOLEX": _ant_z_component("x"),
+    "RADRESIST": _ant_radres,
+    "RESONANTLEN": _ant_resonant,
 })

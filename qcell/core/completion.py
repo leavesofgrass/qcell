@@ -160,6 +160,9 @@ SIGNATURES = {
     "GRIDDIST": "GRIDDIST(grid_a, grid_b)", "GRIDBEARING": "GRIDBEARING(grid_a, grid_b)",
     "HAMBAND": "HAMBAND(freq_hz)", "CTCSSTONE": "CTCSSTONE(number_1_to_50)",
     "NEARESTCTCSS": "NEARESTCTCSS(freq_hz)",
+    "DIPOLER": "DIPOLER(length_wl, [radius_wl=1e-4])",
+    "DIPOLEX": "DIPOLEX(length_wl, [radius_wl=1e-4])",
+    "RADRESIST": "RADRESIST(length_wl)", "RESONANTLEN": "RESONANTLEN([radius_wl=1e-4])",
 }
 
 
