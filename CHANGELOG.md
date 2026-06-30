@@ -30,6 +30,10 @@ All notable changes to qcell are documented here. The format follows
 - **Smith chart** (*Tools → Scientific → Smith chart*) — a QPainter Smith chart that
   plots a load impedance and its reflection coefficient, reports VSWR / return loss,
   and computes the two L-network matching solutions.
+- **Antenna pattern math (Phase A)** — `core/science/antenna.py`: analytic far-field
+  patterns for centre-fed dipoles and uniform linear arrays (array factor), with
+  numerically-integrated directivity/gain (dBi), half-power beamwidth, and polar
+  pattern sampling — the first step toward full Method-of-Moments / NEC modeling.
 
 ## [0.1.1] — 2026-06-30
 
