@@ -10,7 +10,6 @@ import pytest
 from qcell.core import fft as core_fft
 from qcell.core import spectral
 
-
 # --- next_pow2 -------------------------------------------------------------
 
 

@@ -12,7 +12,6 @@ from qcell.core.sortfilter import (
     sort_rows,
 )
 
-
 # --- single-key sorting ----------------------------------------------------
 
 

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from qcell.core import completion
 from qcell.core.completion import (
     apply_completion,
     common_prefix,

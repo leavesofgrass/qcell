@@ -9,10 +9,10 @@ from __future__ import annotations
 
 import pytest
 
-from qcell.engine import parquet_io
-from qcell.engine.parquet_io import ParquetError
 from qcell.core.sheet import Sheet
 from qcell.core.workbook import Workbook
+from qcell.engine import parquet_io
+from qcell.engine.parquet_io import ParquetError
 
 
 def test_available_returns_bool():
@@ -80,5 +80,5 @@ def test_load_missing_deps_raises_parqueterror(tmp_path):
     # Reading a non-existent file should raise (pandas/engine error), not crash
     # the interpreter; the module's own ParquetError is raised when pandas is
     # absent (covered by the without-pandas import test above).
-    with pytest.raises(Exception):
+    with pytest.raises((OSError, ValueError)):
         parquet_io.load_parquet(path)

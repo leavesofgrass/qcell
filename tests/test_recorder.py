@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from qcell.core.workbook import Workbook
-from qcell.macros import install_functions, load_macro_file, run_macro
+from qcell.macros import load_macro_file, run_macro
 from qcell.recorder import Action, MacroRecorder
 
 

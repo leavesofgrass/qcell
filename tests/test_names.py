@@ -11,7 +11,6 @@ from qcell.core.names import (
     normalize_target,
 )
 
-
 # --- is_valid_name ---------------------------------------------------------
 
 

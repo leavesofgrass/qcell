@@ -8,14 +8,13 @@ import pytest
 
 from qcell.core.ode_implicit import (
     StiffODEError,
+    _jacobian,
+    _solve_linear,
     backward_euler,
     bdf2,
     implicit_trapezoid,
     solve_stiff,
-    _jacobian,
-    _solve_linear,
 )
-
 
 # --------------------------------------------------------------------------- #
 # Stiff scalar: y' = -1000 y, y0 = 1, over [0, 0.1].

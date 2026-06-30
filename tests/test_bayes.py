@@ -6,7 +6,6 @@ import pytest
 
 from qcell.core.bayes import BayesError, GaussianNB, MultinomialNB
 
-
 # --------------------------------------------------------------------------- #
 # GaussianNB.
 # --------------------------------------------------------------------------- #

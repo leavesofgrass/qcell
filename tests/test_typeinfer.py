@@ -11,7 +11,6 @@ from qcell.core.typeinfer import (
     infer_value_type,
 )
 
-
 # --- infer_value_type -----------------------------------------------------
 
 

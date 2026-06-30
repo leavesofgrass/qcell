@@ -28,7 +28,6 @@ from qcell.core.financial import (
     percent_total,
 )
 
-
 # --- cash flows ----------------------------------------------------------
 
 

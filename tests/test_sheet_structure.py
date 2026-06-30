@@ -6,7 +6,6 @@ from qcell.core import Sheet
 from qcell.core.errors import CellError
 from qcell.core.workbook import Workbook
 
-
 # --- error literals --------------------------------------------------------
 
 
@@ -78,7 +77,7 @@ def test_insert_rows_moves_cell_formats():
 def test_cross_sheet_reference_shifts_within_workbook():
     s1 = Sheet("Sheet1")
     s2 = Sheet("Sheet2")
-    wb = Workbook.from_sheets([s1, s2])
+    _wb = Workbook.from_sheets([s1, s2])      # keep the workbook alive (wires the sheets)
     s1.set("A5", "100")
     s2.set("A1", "=Sheet1!A5 + 1")
     assert s2.get("A1") == 101.0

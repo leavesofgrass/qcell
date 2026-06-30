@@ -14,7 +14,6 @@ from qcell.core.cluster import (
     silhouette_score,
 )
 
-
 # Two well-separated 2-D blobs: five near (0,0), five near (10,10).
 BLOB_A = [[0.0, 0.0], [0.5, 0.2], [0.1, 0.4], [0.3, -0.2], [-0.2, 0.1]]
 BLOB_B = [[10.0, 10.0], [10.5, 9.8], [9.7, 10.2], [10.2, 10.3], [9.9, 9.6]]

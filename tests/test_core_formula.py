@@ -10,7 +10,6 @@ from qcell.core import Sheet
 from qcell.core.errors import CellError
 from qcell.core.reference import col_to_index, index_to_col, parse_a1, to_a1
 
-
 # --- references -----------------------------------------------------------
 
 

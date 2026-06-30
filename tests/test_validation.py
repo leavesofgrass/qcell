@@ -13,7 +13,6 @@ from qcell.core.validation import (
     validate,
 )
 
-
 # --- list rules -----------------------------------------------------------
 
 

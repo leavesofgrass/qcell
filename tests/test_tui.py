@@ -5,8 +5,6 @@ No real terminal is created (spec §12).
 
 from __future__ import annotations
 
-import os
-
 from qcell.engine.document import Document
 from qcell.tui import (
     THEMES,
@@ -292,7 +290,7 @@ def test_clipboard_history_commands():
 
 
 def test_hex_to_ansi_helpers():
-    from qcell.tui import _hex_to_256, _hex_to_8
+    from qcell.tui import _hex_to_8, _hex_to_256
 
     assert _hex_to_256("#000000") == 16
     assert _hex_to_256("#ffffff") == 231

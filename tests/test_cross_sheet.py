@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-import json
-
+from qcell.core import ast_nodes as A
 from qcell.core.errors import CellError
 from qcell.core.parser import parse
-from qcell.core import ast_nodes as A
 from qcell.core.workbook import Workbook
-
 
 # --- parsing ---------------------------------------------------------------
 

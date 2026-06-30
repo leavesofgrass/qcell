@@ -121,7 +121,7 @@ def test_with_changes_empty_color_allowed():
 
 def test_frozen():
     s = CellStyle()
-    with pytest.raises(Exception):
+    with pytest.raises(AttributeError):       # frozen dataclass -> FrozenInstanceError
         s.bold = True  # type: ignore[misc]
 
 

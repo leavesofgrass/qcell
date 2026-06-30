@@ -17,7 +17,6 @@ from qcell.core.filters import (
     lfilter,
 )
 
-
 # --- helpers -------------------------------------------------------------
 
 

@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import pytest
-
 from qcell.core.structure import (
     REF_ERROR,
-    shift_coord,
-    adjust_reference,
-    adjust_range,
     adjust_formula,
+    adjust_range,
+    adjust_reference,
+    shift_coord,
 )
-
 
 # --- shift_coord ----------------------------------------------------------
 

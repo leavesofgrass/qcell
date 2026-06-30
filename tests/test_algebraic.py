@@ -14,7 +14,6 @@ from qcell.core.algebraic import (
     evaluate,
 )
 
-
 # -- evaluate: arithmetic -------------------------------------------------
 
 

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from qcell.core.voyager import LEGENDS_15C, VoyagerKeypad, grid_pos
 
 # Button numbers for the keys used below (from LEGENDS_15C primaries).

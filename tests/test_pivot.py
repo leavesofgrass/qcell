@@ -12,7 +12,6 @@ from qcell.core.pivot import (
     pivot_table,
 )
 
-
 ROWS = [
     ["dept", "city", "amt"],
     ["A", "NY", "10"],

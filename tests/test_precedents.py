@@ -80,7 +80,7 @@ def test_malformed_garbage_raises():
 
 def test_precedent_is_frozen():
     p = Precedent("cell", "A1", ((0, 0),))
-    with pytest.raises(Exception):
+    with pytest.raises(AttributeError):       # frozen dataclass -> FrozenInstanceError
         p.kind = "range"  # type: ignore[misc]
 
 

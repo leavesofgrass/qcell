@@ -11,7 +11,6 @@ from qcell.core.navigation import (
     parse_target,
 )
 
-
 # --- parse_target ---------------------------------------------------------
 
 def test_parse_target_single_cell():

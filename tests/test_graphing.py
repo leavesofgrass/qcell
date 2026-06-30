@@ -8,7 +8,6 @@ import pytest
 
 from qcell.core.graphing import GraphError, braille_plot, compile_expr, sample
 
-
 # -- compile_expr -----------------------------------------------------------
 
 

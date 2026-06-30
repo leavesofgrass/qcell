@@ -14,7 +14,6 @@ from qcell.core.flatfile_io import (
 )
 from qcell.core.sheet import Sheet
 
-
 # --- JSON Lines -----------------------------------------------------------
 
 

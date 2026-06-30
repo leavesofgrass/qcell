@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from qcell.core import latexmath
 
-
 # --- to_unicode -------------------------------------------------------------
 
 def test_unicode_superscript_digit() -> None:
