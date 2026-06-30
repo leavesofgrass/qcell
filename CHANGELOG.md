@@ -71,6 +71,12 @@ All notable changes to qcell are documented here. The format follows
   metrics. All rendered GUI labels (menus, the keyboard-shortcuts palette, status
   indicators, dialogs) are now ASCII; the painted calculator faceplates keep their
   own glyphs.
+- **Menus/lists pin an explicit UI font** — the theme stylesheet set a font *size*
+  with no *family*, so the default (non-OpenDyslexic) chrome could fall back to a
+  poorly-hinted font that renders even ASCII text with overlapping metrics. The
+  chrome now requests a cross-platform sans-serif stack (Segoe UI / Helvetica Neue /
+  Cantarell / DejaVu Sans / …); the monospace console/terminal are untouched, and
+  the layer steps aside when OpenDyslexic is enabled.
 - **Named ranges and data-validation ranges now follow row/column insert & delete.**
   Previously only cell formulas and conditional-format rules were adjusted, so a
   named range like `Vals = A1:A3` (or a validation region) kept pointing at stale

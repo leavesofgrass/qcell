@@ -13,9 +13,30 @@ class ViewMixin:
         theme = theme_for(name)
         app = QApplication.instance()
         if app is not None:
-            apply_theme(app, name, theme.tokens(), self._ui_font_qss() + self._zoom_qss())
+            apply_theme(app, name, theme.tokens(),
+                        self._base_font_qss() + self._ui_font_qss() + self._zoom_qss())
         self._theme = theme  # custom-painted surfaces read this
         self._update_status_cluster()
+
+    def _base_font_qss(self) -> str:
+        """A known-good UI font family for the chrome when the dyslexia font is OFF.
+
+        The theme ``.qss`` sets ``font-size`` with no ``font-family``, so on some
+        setups Qt resolves the menu/list font to a poorly-hinted fallback that
+        renders even ASCII text with overlapping metrics. Pin an explicit
+        sans-serif stack (Qt picks the first present; ``sans-serif`` backstops every
+        platform). Skipped when OpenDyslexic is active — there ``app.setFont`` and
+        ``_ui_font_qss`` govern. Deliberately excludes the monospace console/terminal
+        (``QPlainTextEdit``/``QTextEdit``) and the QPainter calculator faceplates.
+        """
+        if getattr(self, "_ui_font_family", ""):
+            return ""
+        fam = ('"Segoe UI", "Helvetica Neue", "Cantarell", "DejaVu Sans", '
+               '"Noto Sans", "Arial", sans-serif')
+        return ("\nQMenuBar, QMenu, QStatusBar, QToolBar, QTabBar, QHeaderView, QLabel, "
+                "QPushButton, QToolButton, QCheckBox, QRadioButton, QLineEdit, QComboBox, "
+                "QSpinBox, QListWidget, QListView, QTreeView, QGroupBox, QMessageBox "
+                f"{{ font-family: {fam}; }}\n")
 
     def _ui_font_qss(self) -> str:
         """Stylesheet layer forcing the dyslexia font on text-heavy widgets (cells,
