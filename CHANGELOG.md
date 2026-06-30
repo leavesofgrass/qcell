@@ -31,6 +31,14 @@ All notable changes to qcell are documented here. The format follows
   speed.
 
 ### Added
+- **qcell as a Jupyter kernel (Jupyter roadmap Phase 2)** — a new `qcell/kernel.py`.
+  Its brain, `QcellShell`, runs notebook cells in the qcell console namespace over
+  a workbook and returns results already in Jupyter execute-result shape (a
+  `richdisplay` mime-bundle + captured stdout), so a Sheet renders as an HTML table
+  in JupyterLab. `install_kernelspec()` registers the "qcell" kernel; `python -m
+  qcell.kernel` launches it. ipykernel is an **opt-in** dependency, imported only
+  at launch — the default lightweight JSON console is unchanged. The shell and
+  kernelspec are fully tested; the thin ZMQ glue activates with ipykernel.
 - **Notebook validation (Jupyter roadmap Phase 1)** — `engine/nbvalidate.py` checks
   a notebook against the real **nbformat** schema when it's installed, and against
   focused stdlib structural checks otherwise (nbformat version, cell types, the
