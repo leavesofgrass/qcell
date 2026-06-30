@@ -44,6 +44,7 @@ if _HAS_MSGSPEC:
         show_toolbar: bool = True
         recent_files: list = []
         window_geometry: dict = {}
+        fm_buttons: list = []
         schema_version: int = SCHEMA_VERSION
 
     _encoder = msgspec.json.Encoder()
@@ -81,6 +82,7 @@ else:
         show_toolbar: bool = True
         recent_files: list = field(default_factory=list)
         window_geometry: dict = field(default_factory=dict)
+        fm_buttons: list = field(default_factory=list)
         schema_version: int = SCHEMA_VERSION
 
     def load_settings(path: Path) -> "Settings":

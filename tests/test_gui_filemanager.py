@@ -94,6 +94,20 @@ def test_run_command_button(app, tree):
     assert "echo" in dlg._status.text()              # status records the run
 
 
+def test_user_buttons_loaded_from_settings(app, tree):
+    from qcell.gui._qtcompat import QWidget
+    from qcell.gui.dialogs.filemanager_dialog import FileManagerDialog
+    from qcell.settings import Settings
+
+    win = QWidget()                                  # cheap stand-in for the window
+    win._settings = Settings()
+    win._settings.fm_buttons = [{"label": "Mine", "command": "echo {name}"}]
+    dlg = FileManagerDialog(win, start_dir=str(tree / "left"))
+    labels = [b.label for b in dlg._buttons]
+    assert "Mine" in labels                          # user button merged with defaults
+    assert "Show path" in labels                     # defaults still present
+
+
 def test_wired_into_window(app):
     from qcell.gui.main_window import MainWindow
 

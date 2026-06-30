@@ -158,7 +158,7 @@ class FileManagerDialog(QDialog):
         root.addWidget(split, 1)
 
         self._active = self.left
-        root.addLayout(self._build_command_buttons())
+        root.addWidget(self._build_command_buttons())
         self._output = QPlainTextEdit(self)
         self._output.setReadOnly(True)
         self._output.setMaximumHeight(110)
@@ -189,16 +189,68 @@ class FileManagerDialog(QDialog):
         return bar
 
     def _build_command_buttons(self):
-        bar = QHBoxLayout()
-        bar.addWidget(QLabel("Commands:", self))
-        self._buttons = fmbuttons.default_buttons()
+        self._cmd_row = QWidget(self)
+        self._cmd_layout = QHBoxLayout(self._cmd_row)
+        self._cmd_layout.setContentsMargins(0, 0, 0, 0)
+        self._reload_command_buttons()
+        return self._cmd_row
+
+    def _user_buttons(self) -> list[fmbuttons.Button]:
+        raw = getattr(getattr(self._win, "_settings", None), "fm_buttons", []) or []
+        out = []
+        for data in raw:
+            try:
+                out.append(fmbuttons.Button.from_dict(data))
+            except (KeyError, TypeError):
+                continue
+        return out
+
+    def _reload_command_buttons(self) -> None:
+        while self._cmd_layout.count():
+            item = self._cmd_layout.takeAt(0)
+            w = item.widget()
+            if w is not None:
+                w.deleteLater()
+        self._cmd_layout.addWidget(QLabel("Commands:", self))
+        self._buttons = fmbuttons.default_buttons() + self._user_buttons()
         for b in self._buttons:
             btn = QPushButton(b.label, self)
             btn.setToolTip(b.command)
             btn.clicked.connect(lambda _=False, bb=b: self._run_button(bb))
-            bar.addWidget(btn)
-        bar.addStretch(1)
-        return bar
+            self._cmd_layout.addWidget(btn)
+        add = QPushButton("+ Add...", self)
+        add.setToolTip("Add a custom command button")
+        add.clicked.connect(self._add_button)
+        self._cmd_layout.addWidget(add)
+        self._cmd_layout.addStretch(1)
+
+    def _add_button(self) -> None:
+        label, ok = QInputDialog.getText(self, "Add command button", "Button label:")
+        if not ok or not label.strip():
+            return
+        command, ok2 = QInputDialog.getText(
+            self, "Add command button",
+            "Command (placeholders: {dir} {path} {name} {sel} {dest}):")
+        if not ok2 or not command.strip():
+            return
+        settings = getattr(self._win, "_settings", None)
+        if settings is not None:
+            settings.fm_buttons = list(getattr(settings, "fm_buttons", []) or []) + [
+                {"label": label.strip(), "command": command.strip()}]
+            self._persist_settings()
+        self._reload_command_buttons()
+        self._set_status(f"added command button '{label.strip()}'")
+
+    def _persist_settings(self) -> None:
+        settings = getattr(self._win, "_settings", None)
+        if settings is None:
+            return
+        try:
+            from .. import _runtime as rt
+            from ...settings import save_settings
+            save_settings(settings, rt.CONFIG_DIR / "settings.json")
+        except Exception:
+            pass
 
     # --- helpers --------------------------------------------------------
     def _set_active(self, pane: _Pane) -> None:
