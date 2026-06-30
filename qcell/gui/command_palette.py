@@ -53,9 +53,10 @@ class CommandPalette(QDialog):
     """Modal fuzzy-filter palette. Build with the ``{label: callable}`` mapping;
     after ``exec()`` returns truthy, ``chosen()`` is the selected callable."""
 
-    def __init__(self, parent, actions: dict) -> None:
+    def __init__(self, parent, actions: dict, placeholder: str = "Type a command…") -> None:
         super().__init__(parent)
         self.setWindowTitle("Command palette")
+        self._placeholder = placeholder
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
         self.setModal(True)
         self._actions = list(actions.items())   # preserve insertion (grouped) order
@@ -67,7 +68,7 @@ class CommandPalette(QDialog):
         lay.setSpacing(6)
 
         self._input = QLineEdit(self)
-        self._input.setPlaceholderText("Type a command…")
+        self._input.setPlaceholderText(self._placeholder)
         self._input.setClearButtonEnabled(True)
         lay.addWidget(self._input)
 

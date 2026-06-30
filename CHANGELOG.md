@@ -12,8 +12,9 @@ All notable changes to qcell are documented here. The format follows
 - **Base-aware calculator send** — on the programmer (HP-16C) model, *Send to cell*
   writes the value in the current base as **bare digits** (`FF`, `377`, `1010`)
   instead of converting to decimal; decimal mode still sends a plain number.
-- **OpenDyslexic now applies across the UI** — menus, dialogs, grid cells, the
-  Python console, and the terminal (the calculator LCD/faceplates keep their fonts).
+- **OpenDyslexic now applies across the UI** — menus, dialogs, the grid cells, and
+  the Python console (the calculator LCD, painted faceplates, and the terminal keep
+  their own fonts).
 - **Calculator choice persists** — the chosen model and faceplate style are saved
   (`calc_model` / `calc_style`) and restored on next launch.
 - **Install profiles & granular extras** — new `thin` (lean desktop, no heavy data
@@ -30,14 +31,18 @@ All notable changes to qcell are documented here. The format follows
   TI-82/83/84/84 CE** (default model unchanged: HP-16C).
 - Calculator "Send to cell(s)" button/menu/palette entries → singular **"Send to
   cell"**; the About box now names the built-in calculators.
-- Keyboard-shortcuts dialog widened and set to no-wrap so the shortcut column shows.
+- **Help → Keyboard shortcuts** is now a searchable `rofi`/`dmenu`-style palette
+  (type to filter by action or key; Enter launches the action), replacing the
+  static text dump.
+- The code-execution **consent prompt** is clearer: it explains the console runs in
+  its own sub-process and suggests a virtual environment for stronger isolation.
 
 ### Fixed
 - **Intermittent crash when scrolling quickly** — model growth is now deferred out
   of the scrollbar signal (`QTimer.singleShot`) instead of mutating the model
   mid-scroll.
-- **Keyboard-shortcuts text mangled** by stray non-ASCII glyphs — the entire dialog
-  text is now forced to ASCII (arrow glyphs mapped, everything else stripped).
+- **OpenDyslexic now reaches the grid cells** — applied via the cell font role (a
+  QSS font-family on the view wasn't honored by the item delegate's painter).
 - **OpenDyslexic font download 404** — the fetch URL pointed at the upstream
   `master` branch (renamed to `main`); re-pinned to an immutable commit SHA.
 

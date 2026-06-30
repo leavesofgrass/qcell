@@ -151,13 +151,10 @@ qcell looks for an assets folder holding per-model subfolders (each with a
 3. A local **`qrpn-voyager`** (or `qv`) checkout next to your working directory
    or the qcell tree — under `qrpn/assets/voyager/<model>` — so contributors who
    have it handy get the art with no configuration.
-4. Assets you fetched into qcell's cache via *Tools → Calculator faceplates →
-   Fetch from GitHub…* (you supply your own repo `owner/name`; qcell has no
-   default source).
 
 qcell only **reads** these files in place — it never bundles or copies them, and
 it never draws any manufacturer trademark. If no usable assets are found, it quietly uses
-the vector faceplate. After setting a folder or fetching, an open calculator
+the vector faceplate. After setting a folder, an open calculator
 rebuilds so the new art takes effect immediately. Set the **Style** dropdown to
 *Image* to use them.
 

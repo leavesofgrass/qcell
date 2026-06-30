@@ -126,9 +126,14 @@ class QcellTableModel(QAbstractTableModel):
         if role == role_e.ForegroundRole:
             return QBrush(QColor(fg)) if fg else None
         if role == role_e.FontRole:
-            if not (bold or italic or underline):
+            # The dyslexia font reaches cells via FontRole: a QSS family on the view
+            # isn't honored by the item delegate's painter, so set it per cell here.
+            fam = getattr(self._win, "_ui_font_family", "")
+            if not (bold or italic or underline or fam):
                 return None
             font = QFont(self._win._table.font())
+            if fam:
+                font.setFamily(fam)
             font.setBold(bold)
             font.setItalic(italic)
             font.setUnderline(underline)

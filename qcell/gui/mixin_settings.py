@@ -9,31 +9,6 @@ from __future__ import annotations
 from .theming import apply_theme, theme_for
 from ..core.reference import to_a1
 
-_VIM_HINT = (
-    "Grid / vim mode:\n"
-    "    j k h l            move\n"
-    "    g / G              jump to top / bottom\n"
-    "    / then n / N       search and repeat\n"
-    "    :                  command palette\n"
-    "    i                  edit cell      Del   clear cell\n"
-    "    Ctrl+Arrow         jump to data edge"
-)
-
-
-def _ascii(s: str) -> str:
-    """Render a label as plain ASCII so the monospace help text never mangles.
-
-    Known decorative glyphs map to readable equivalents (e.g. ``→`` → ``->``);
-    any other non-ASCII character is then stripped as a backstop, so a stray
-    symbol in a future menu label can never break the layout again.
-    """
-    for u, a in (("…", ""), ("›", ">"), ("—", "-"), ("·", "-"),
-                 ("●", "*"), ("≥", ">="), ("≤", "<="),
-                 ("→", "->"), ("←", "<-"), ("↑", "^"), ("↓", "v"),
-                 ("⭱", "^"), ("⭳", "v"), ("×", "x"), ("÷", "/"), ("•", "*")):
-        s = s.replace(u, a)
-    return s.encode("ascii", "ignore").decode("ascii")
-
 
 class SettingsMixin:
     def apply_current_theme(self) -> None:
@@ -104,54 +79,40 @@ class SettingsMixin:
         self._set_status(f"vim mode: {'on' if self._settings.vim_mode else 'off'}")
         self._update_status_cluster()
 
-    def _collect_shortcuts(self, menu) -> list[tuple[str, str]]:
-        out: list[tuple[str, str]] = []
-        for act in menu.actions():
-            sub = act.menu()
-            if sub is not None:
-                prefix = _ascii(act.text().replace("&", ""))
-                for text, sc in self._collect_shortcuts(sub):
-                    out.append((f"{prefix} > {text}", sc))
-                continue
-            sc = act.shortcut().toString()
-            if sc:
-                out.append((_ascii(act.text().replace("&", "")), sc))
+    def _shortcut_actions(self) -> dict:
+        """A ``{"Menu > Action    ·    Shortcut": action.trigger}`` mapping over
+        every menu action that has a keyboard shortcut — powers the searchable
+        shortcuts dialog (which also launches the action)."""
+        out: dict = {}
+
+        def walk(menu, prefix: str) -> None:
+            for act in menu.actions():
+                sub = act.menu()
+                if sub is not None:
+                    walk(sub, f"{prefix}{act.text().replace('&', '')} › ")
+                    continue
+                sc = act.shortcut().toString()
+                if sc and act.text():
+                    out[f"{prefix}{act.text().replace('&', '')}    ·    {sc}"] = act.trigger
+
+        for menu_action in self.menuBar().actions():
+            menu = menu_action.menu()
+            if menu is not None:
+                walk(menu, f"{menu_action.text().replace('&', '')} › ")
         return out
 
     def show_shortcuts(self) -> None:
-        from ._qtcompat import QDialog, QPlainTextEdit, QVBoxLayout
+        """A rofi/dmenu-style searchable list of keyboard shortcuts (Help, F1).
 
-        lines: list[str] = []
-        for menu_action in self.menuBar().actions():
-            menu = menu_action.menu()
-            if menu is None:
-                continue
-            items = self._collect_shortcuts(menu)
-            if not items:
-                continue
-            lines.append(_ascii(menu_action.text().replace("&", "")))
-            for text, sc in items:
-                lines.append(f"    {text:<32}{sc}")
-            lines.append("")
-        lines.append(_VIM_HINT)
-        dlg = QDialog(self)
+        Type to fuzzy-filter by action name or key; Enter runs the highlighted
+        action. Reuses the command palette, so it shares its clean rendering."""
+        from .command_palette import CommandPalette
+
+        dlg = CommandPalette(self, self._shortcut_actions(),
+                             placeholder="Filter shortcuts…")
         dlg.setWindowTitle("Keyboard shortcuts")
-        dlg.resize(660, 600)
-        layout = QVBoxLayout(dlg)
-        view = QPlainTextEdit(dlg)
-        view.setReadOnly(True)
-        # Don't wrap: each line is "<action padded to 32>  <shortcut>", so wrapping
-        # would push the shortcut onto the next line / out of view. A horizontal
-        # scrollbar appears only if a line is wider than the (now wider) dialog.
-        view.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
-        # A per-widget stylesheet beats the global theme QSS (which sets font-size
-        # on '*' and would otherwise override setFont and break monospace).
-        view.setStyleSheet("QPlainTextEdit { font-family: Consolas, 'Courier New', monospace; font-size: 13px; }")
-        # Asciify the whole assembled text (not just labels): the shortcut column
-        # and any future content are forced ASCII too, so no stray glyph mangles it.
-        view.setPlainText(_ascii("\n".join(lines)))
-        layout.addWidget(view)
-        dlg.exec()
+        if dlg.exec() and dlg.chosen() is not None:
+            dlg.chosen()()
 
     def show_about(self) -> None:
         from ._qtcompat import QMessageBox
@@ -207,7 +168,6 @@ class SettingsMixin:
             "Show/hide calculator": self.toggle_calculator,
             "Get cell value → calculator": self.cell_to_calc,
             "Send calculator value → cell": self.calc_to_cells,
-            "Fetch HP faceplates from GitHub…": self.fetch_faceplates,
             "Terminal…": self.show_terminal,
             "Matrix tool…": self.show_matrix_tool,
             "Python console…": self.show_pyconsole,
@@ -457,10 +417,14 @@ class SettingsMixin:
         box = QMessageBox(self)
         box.setIcon(QMessageBox.Icon.Warning)
         box.setWindowTitle("Run untrusted code?")
-        box.setText(f"{what} runs arbitrary code with full access to your files, "
-                    "network, and system — qcell does not sandbox it.")
-        box.setInformativeText("Only continue if you trust the code you'll run. "
-                               "Enabling this is remembered for future sessions.")
+        box.setText(f"{what} runs code with your full user privileges — it can "
+                    "read and write your files, network, and system.")
+        box.setInformativeText(
+            "The Python console runs in its own sub-process, so a crash or runaway "
+            "there can't take down qcell — but this is not a security sandbox. For "
+            "stronger isolation, run qcell inside a dedicated Python virtual "
+            "environment. Only continue if you trust the code you'll run; enabling "
+            "this is remembered for future sessions.")
         enable = box.addButton("Enable code execution", QMessageBox.ButtonRole.AcceptRole)
         cancel = box.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
         box.setDefaultButton(cancel)
@@ -567,46 +531,6 @@ class SettingsMixin:
         self._refresh_calculator()
         self._set_status(f"faceplate folder: {chosen}")
 
-    def fetch_faceplates(self) -> None:
-        """Download HP faceplate image assets from a GitHub repo into the cache."""
-        from ._qtcompat import QApplication, QInputDialog, QMessageBox, Qt
-        from .. import _runtime as rt
-        from ..core import faceplate_assets as fa
-        from ..settings import save_settings
-
-        # No default source — qcell ships no artwork; the user points this at their
-        # own asset repo (last-used value is remembered).
-        repo = getattr(self._settings, "faceplate_repo", "")
-        repo, ok = QInputDialog.getText(
-            self, "Fetch faceplate assets",
-            "GitHub repo (owner/name) holding your faceplate assets "
-            "under qrpn/assets/voyager:", text=repo)
-        if not ok or not repo.strip():
-            return
-        repo = repo.strip()
-        self._settings.faceplate_repo = repo
-        save_settings(self._settings, rt.CONFIG_DIR / "settings.json")
-        self._set_status(f"fetching faceplates from {repo}…")
-        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
-        models = None
-        try:
-            for branch in ("main", "master"):
-                try:
-                    models = fa.fetch(repo, branch=branch, force=True)
-                    break
-                except fa.FaceplateFetchError:
-                    if branch == "master":
-                        raise
-        except fa.FaceplateFetchError as exc:
-            QApplication.restoreOverrideCursor()
-            QMessageBox.warning(self, "Fetch faceplates", f"Could not fetch:\n{exc}")
-            return
-        QApplication.restoreOverrideCursor()
-        QMessageBox.information(
-            self, "Fetch faceplates", f"Fetched faceplates: {', '.join(models)}")
-        self._refresh_calculator()
-        self._set_status(f"faceplates ready: {', '.join(models)}")
-
     def show_graph(self) -> None:
         from .graph_dialog import GraphDialog
 
@@ -656,6 +580,8 @@ class SettingsMixin:
                 app.setFont(QFont())
             self._settings.dyslexic_font = False
             self.apply_current_theme()           # drop the font layer from the QSS
+            if getattr(self, "_model", None) is not None:
+                self.refresh_table()             # re-query cell FontRole
             self._set_status("default font")
             return
         paths = fontmod.fetched_paths()
@@ -675,7 +601,9 @@ class SettingsMixin:
             app.setFont(QFont(family, 11))          # menus, dialogs, buttons, labels
             self._ui_font_family = family
             self._settings.dyslexic_font = True
-            self.apply_current_theme()              # + cells, console, terminal, lists
+            self.apply_current_theme()              # + console, terminal, lists
+            if getattr(self, "_model", None) is not None:
+                self.refresh_table()                # cells pick up the family via FontRole
             self._set_status(f"font: {family} (applied across the UI)")
 
     def toggle_dyslexic_font(self) -> None:

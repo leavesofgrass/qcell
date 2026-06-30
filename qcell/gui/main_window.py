@@ -404,7 +404,6 @@ class MainWindow(NavigationMixin, DocumentMixin, SettingsMixin, QMainWindow):
         m_tools.addSeparator()
         m_face = m_tools.addMenu("Calculator &faceplates")
         self._act(m_face, "Set image folder…", self.set_faceplate_folder)
-        self._act(m_face, "Fetch from GitHub…", self.fetch_faceplates)
         self._act(m_tools, "Copy selection as &Markdown", self._copy_as_markdown)
 
         # --- Help ---------------------------------------------------------

@@ -26,7 +26,6 @@ JSON encoding uses `msgspec` when the `fast-io` extra is installed and falls bac
 | `last_cell` | string | `""` | Cursor cell (A1), restored on launch. |
 | `code_consent` | bool | `false` | Whether you've consented to run untrusted code (console/terminal/scripts/macros). Set back to `false` to be prompted again. |
 | `faceplate_assets_dir` | string | `""` | Folder of calculator faceplate artwork (see [Faceplate assets](#faceplate-assets)). |
-| `faceplate_repo` | string | `""` | GitHub `owner/name` repo to fetch faceplate assets from. |
 | `open_default_panels` | bool | `true` | Open the default side panels on GUI startup. |
 | `show_toolbar` | bool | `true` | Show the GUI toolbar. |
 | `recent_files` | list | `[]` | Recently opened file paths. |
@@ -122,7 +121,6 @@ qcell looks for a model's assets in this order and uses the first usable match:
 1. The `faceplate_assets_dir` setting, if set (the assets-root folder).
 2. The `QCELL_FACEPLATE_DIR` environment variable (also an assets-root folder).
 3. A local `qrpn-voyager/` or `qv/` checkout found beside the working directory, its parent, or the qcell source tree — assets are expected under `qrpn/assets/voyager/<model>/`. Contributors who keep that checkout handy get the artwork with no configuration.
-4. Assets you fetched from a GitHub repo into qcell's cache (`CACHE/faceplates/`) via the GUI's Tools → Fetch action; the repo is given as `faceplate_repo` (`owner/name`), and assets are pulled from `qrpn/assets/voyager` within it.
 
 Both `faceplate_assets_dir` and `QCELL_FACEPLATE_DIR` should point at the **assets root** (the directory that holds the per-model subfolders), for example a local qrpn-voyager checkout's `qrpn/assets/voyager`.
 

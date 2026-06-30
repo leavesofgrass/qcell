@@ -153,15 +153,13 @@ def test_second_send_without_reselect_keeps_target(win):
         f"cur=({win._table.currentRow()},{win._table.currentColumn()})")
 
 
-def test_shortcuts_text_is_plain_ascii():
-    # The keyboard-shortcuts dialog must render plain ASCII — a stray unicode glyph
-    # (e.g. the calculator menu's "→") mangled the monospace layout.
-    from qcell.gui.mixin_settings import _ascii
-
-    assert _ascii("Send calculator value → cell") == "Send calculator value -> cell"
-    out = _ascii("Get cell value → calculator… ≥ ⭳ ×")
-    assert out.isascii(), f"non-ASCII leaked through: {out!r}"
-    assert "->" in out
+def test_shortcut_actions_labeled_and_callable(win):
+    # The shortcuts dialog reuses the command palette: a {label+key: trigger} map.
+    actions = win._shortcut_actions()
+    assert actions
+    assert all(callable(v) for v in actions.values())
+    assert any("Ctrl+F" in k for k in actions)        # Find / Replace is present
+    assert any("›" in k for k in actions)             # entries carry the menu path
 
 
 def test_calc_model_choice_persists(win):
