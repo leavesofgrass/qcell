@@ -31,6 +31,11 @@ All notable changes to qcell are documented here. The format follows
   speed.
 
 ### Added
+- **Notebook validation (Jupyter roadmap Phase 1)** — `engine/nbvalidate.py` checks
+  a notebook against the real **nbformat** schema when it's installed, and against
+  focused stdlib structural checks otherwise (nbformat version, cell types, the
+  4.5 per-cell `id`, code-cell `outputs`/`execution_count`). A regression test pins
+  that qcell's own `.ipynb` export always validates.
 - **Rich display protocol (Jupyter roadmap Phase 1)** — a new `core/richdisplay.py`
   implements the IPython display protocol (`_repr_mimebundle_` plus the per-format
   `_repr_html_` / `_repr_markdown_` / … hooks, with a `text/plain` fallback). The
