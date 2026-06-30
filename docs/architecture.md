@@ -45,8 +45,13 @@ core  ──►  engine  ──►  gui / tui
   virtualized table model/view + frozen panes), **`gui/dialogs/`** (the ~20 modal
   dialogs and browsers), **`gui/calc/`** (the floating calculator panel + painted/
   image faceplates), and **`gui/console/`** (the embedded Python console, its
-  out-of-process bridge, and the terminals). The main window, mixins, theming, and
-  the `_qtcompat` shim stay at the `gui/` root.
+  out-of-process bridge, and the terminals). The main window, theming, and the
+  `_qtcompat` shim stay at the `gui/` root. `MainWindow` composes focused mixins:
+  `DocumentMixin` (open/save/edit), `NavigationMixin` (movement/selection), and
+  `SettingsMixin` — itself composed from `ViewMixin` (theme/zoom/fonts/docks),
+  `PaletteMixin` (command + shortcut palettes, About), `CalcMixin` (calculator),
+  `ConsoleMixin` (console/terminal/consent), `MacroMixin` (record/replay/scripts),
+  and `ToolsMixin` (data/science dialogs, conditional format, clipboard, actions).
 
 ### Why the seam matters
 

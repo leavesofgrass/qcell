@@ -81,7 +81,7 @@ files migrate forward on load.
 ### `.json` auto-detects native vs foreign
 
 A `.json` (or `.qcell`) file is opened through
-[`qcell/core/exchange_io.py`](../qcell/core/exchange_io.py), which inspects the
+[`qcell/core/io/exchange_io.py`](../qcell/core/io/exchange_io.py), which inspects the
 payload shape and does the right thing:
 
 - **qcell workbook envelope** (`data.sheets` present) → loaded losslessly.
@@ -110,7 +110,7 @@ native files *are* valid interchange envelopes.
 
 ## CSV / TSV / tab (`.csv`, `.tsv`, `.tab`)
 
-Implemented in [`qcell/core/csv_io.py`](../qcell/core/csv_io.py) on the stdlib
+Implemented in [`qcell/core/io/csv_io.py`](../qcell/core/io/csv_io.py) on the stdlib
 `csv` module. Import places each field as raw cell text (a field starting with
 `=` becomes a formula); empty fields are skipped. `.tsv`/`.tab` use a tab
 delimiter. Export writes **computed values** by default (`values=True`); the API
@@ -123,7 +123,7 @@ python -m qcell view data.csv
 
 ### Streaming large CSVs
 
-[`qcell/core/csv_stream.py`](../qcell/core/csv_stream.py) imports big CSVs
+[`qcell/core/io/csv_stream.py`](../qcell/core/io/csv_stream.py) imports big CSVs
 without loading the whole file into memory. It provides:
 
 - `sniff_csv(path)` — a fast **preview**: delimiter and header detection, a
@@ -182,7 +182,7 @@ pip install pandas pyarrow
 
 ## XML Spreadsheet / SpreadsheetML (`.xml`)
 
-[`qcell/core/xml_io.py`](../qcell/core/xml_io.py) reads and writes the Excel 2003
+[`qcell/core/io/xml_io.py`](../qcell/core/io/xml_io.py) reads and writes the Excel 2003
 "XML Spreadsheet" dialect (`<Worksheet>/<Table>/<Row>/<Cell>/<Data>`), which both
 Excel and gnumeric understand — pure stdlib. Notable details:
 
@@ -194,7 +194,7 @@ Excel and gnumeric understand — pure stdlib. Notable details:
 
 ## Markdown GFM tables (`.md`, `.markdown`)
 
-[`qcell/core/markdown_io.py`](../qcell/core/markdown_io.py) treats GitHub-Flavored
+[`qcell/core/io/markdown_io.py`](../qcell/core/io/markdown_io.py) treats GitHub-Flavored
 Markdown tables as a first-class format. Export produces a padded,
 alignment-aware table (per-column `l`/`c`/`r`), using the first row as the header
 (or column letters if you turn headers off), and renders **computed values**.
@@ -213,7 +213,7 @@ The GUI command palette also offers **Copy selection as Markdown**.
 
 ## Jupyter notebook (`.ipynb`)
 
-[`qcell/core/notebook_io.py`](../qcell/core/notebook_io.py) reads and writes
+[`qcell/core/io/notebook_io.py`](../qcell/core/io/notebook_io.py) reads and writes
 nbformat 4 with **no `nbformat` dependency**. Export emits, per sheet, a Markdown
 cell (a `## heading` plus a GFM table) and a code cell that rebuilds the sheet as
 a pandas `DataFrame`. Import scans Markdown cells for GFM tables; each table
@@ -221,7 +221,7 @@ becomes a sheet named after the nearest heading.
 
 ## R data.frame (`.r`, `.rdata`)
 
-[`qcell/core/r_io.py`](../qcell/core/r_io.py) exports each sheet as a
+[`qcell/core/io/r_io.py`](../qcell/core/io/r_io.py) exports each sheet as a
 `name <- data.frame(col = c(...), ...)` block (first row supplies the column
 names, `stringsAsFactors = FALSE`). Import is a **best-effort** parser for that
 same shape and for bare `name <- c(...)` vectors. Strings are quoted/escaped,
@@ -229,7 +229,7 @@ same shape and for bare `name <- c(...)` vectors. Strings are quoted/escaped,
 
 ## JSON Lines (`.jsonl`, `.ndjson`)
 
-[`qcell/core/flatfile_io.py`](../qcell/core/flatfile_io.py) — one JSON object per
+[`qcell/core/io/flatfile_io.py`](../qcell/core/io/flatfile_io.py) — one JSON object per
 line. On import, row 0 is the ordered union of all object keys (first-seen
 order); each later row holds that object's values as strings, with a missing key
 left blank. On export, row 0 supplies the field names and each later row becomes
@@ -238,14 +238,14 @@ skipped).
 
 ## Fixed-width text (`.fixed`)
 
-Also in [`qcell/core/flatfile_io.py`](../qcell/core/flatfile_io.py). Import either
+Also in [`qcell/core/io/flatfile_io.py`](../qcell/core/io/flatfile_io.py). Import either
 slices each line by explicit character widths or, by default, splits on runs of
 two-or-more spaces (the layout of `column -t` output). Export renders each column
 left-aligned and padded to its widest value plus a gap.
 
 ## SQLite (`.db`, `.sqlite`, `.sqlite3`)
 
-[`qcell/core/sqlite_io.py`](../qcell/core/sqlite_io.py) uses the stdlib `sqlite3`
+[`qcell/core/io/sqlite_io.py`](../qcell/core/io/sqlite_io.py) uses the stdlib `sqlite3`
 module. Opening a database loads **every user table** (excluding `sqlite_*`
 internals) into its own sheet; row 0 is the column names and rows 1.. are the
 data, all stored as text. Saving writes the active sheet to one table: row 0

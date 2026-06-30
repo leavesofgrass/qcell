@@ -230,12 +230,19 @@ just check      # lint + test + pyz + smoke
 
 ```
 qcell/
-  core/      stdlib-only engine: references, tokenizer, parser, evaluator,
-             functions, sheet, workbook; fill/series; csv/markdown/notebook/
-             r/xml/exchange I/O; translate (ref-shift), r1c1, completion
-  engine/    adapters: excel_io (openpyxl), document façade (format dispatch)
-  gui/       Qt front-end (mixins, menus, dual-surface theming, _qtcompat)
-  tui.py     curses TUI (vim-first, SSH-safe)
+  core/      stdlib-only engine at the root: references, tokenizer, parser,
+             evaluator, functions, sheet, workbook; fill/series; translate
+             (ref-shift), r1c1, completion. Pluggable libraries in subpackages:
+    core/io/        csv/markdown/notebook/r/xml/exchange/sqlite/flatfile I/O
+    core/calc/      RPN (12C/15C/16C), algebraic, TI calculator engines
+    core/science/   linear algebra, calculus/ODE, signal, stats, ML, finance
+    core/format/    number formats, cell styles, conditional formatting, palettes
+  engine/    adapters: excel_io/ods_io/parquet_io, document façade (dispatch)
+  gui/       Qt front-end: MainWindow + mixins (view/palette/calc/console/
+             macros/tools), menus, dual-surface theming, _qtcompat. Widgets in
+             gui/grid/, gui/dialogs/, gui/calc/, gui/console/
+  tui/       curses TUI (vim-first, SSH-safe): capabilities/themes/commands/
+             editor/keys/render/app
   macros.py  macro engine + UDF registration
   recorder.py  macro recording (absolute & relative)
   app.py     CLI entry (lazy imports, --help/--version/--deps fast paths)

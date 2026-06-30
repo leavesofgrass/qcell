@@ -19,13 +19,13 @@ See also: [index](index.md) · [formula reference](formula-reference.md) ·
 
 | Tool | Menu | Backed by |
 | --- | --- | --- |
-| Statistics / analysis | Data → Analyze → Statistics / analysis… | [`engine/analysis.py`](../qcell/engine/analysis.py), [`core/stats.py`](../qcell/core/stats.py) |
-| Open selection in pandas | Data → Analyze → Open selection in pandas… | [`gui/dataframe_dialog.py`](../qcell/gui/dataframe_dialog.py) |
+| Statistics / analysis | Data → Analyze → Statistics / analysis… | [`engine/analysis.py`](../qcell/engine/analysis.py), [`core/science/stats.py`](../qcell/core/science/stats.py) |
+| Open selection in pandas | Data → Analyze → Open selection in pandas… | [`gui/dialogs/dataframe_dialog.py`](../qcell/gui/dialogs/dataframe_dialog.py) |
 | Recode / clean column | Data → Analyze → Recode / clean column… | [`core/recode.py`](../qcell/core/recode.py) |
 | Pivot / group-by | Data → Analyze → Pivot / group-by… (palette) | [`core/pivot.py`](../qcell/core/pivot.py) |
-| Graph / chart | Data → Analyze → Graph / chart… | [`core/graphing.py`](../qcell/core/graphing.py), [`core/signal.py`](../qcell/core/signal.py) |
-| ML tool | Tools → Scientific → ML tool… | [`core/ml.py`](../qcell/core/ml.py), [`core/cluster.py`](../qcell/core/cluster.py), [`core/metrics.py`](../qcell/core/metrics.py) |
-| Matrix tool | Tools → Scientific → Matrix tool… | [`core/matrix.py`](../qcell/core/matrix.py), [`core/eigen.py`](../qcell/core/eigen.py) |
+| Graph / chart | Data → Analyze → Graph / chart… | [`core/graphing.py`](../qcell/core/graphing.py), [`core/science/signal.py`](../qcell/core/science/signal.py) |
+| ML tool | Tools → Scientific → ML tool… | [`core/science/ml.py`](../qcell/core/science/ml.py), [`core/science/cluster.py`](../qcell/core/science/cluster.py), [`core/science/metrics.py`](../qcell/core/science/metrics.py) |
+| Matrix tool | Tools → Scientific → Matrix tool… | [`core/science/matrix.py`](../qcell/core/science/matrix.py), [`core/science/eigen.py`](../qcell/core/science/eigen.py) |
 
 ## Statistics / analysis
 
@@ -58,7 +58,7 @@ Graceful degradation is the rule:
   rather than failing.
 
 qcell also has a dependency-free statistics engine in
-[`qcell/core/stats.py`](../qcell/core/stats.py) (descriptive stats,
+[`qcell/core/science/stats.py`](../qcell/core/science/stats.py) (descriptive stats,
 normal/Student-t/F distributions, t-tests, ANOVA, chi-square, confidence
 intervals) that underpins the formula-level statistical functions.
 
@@ -104,7 +104,7 @@ cells through unchanged).
 
 ## Open selection in pandas
 
-A DataFrame viewer ([`gui/dataframe_dialog.py`](../qcell/gui/dataframe_dialog.py))
+A DataFrame viewer ([`gui/dialogs/dataframe_dialog.py`](../qcell/gui/dialogs/dataframe_dialog.py))
 that loads the selected range as a **typed** pandas DataFrame — each column is
 coerced to its inferred type (int / float / bool / date / text) via
 `qcell.core.typeinfer`. It displays the shape, dtypes, `describe()`, and a head
@@ -116,7 +116,7 @@ app.
 ## Graph / chart
 
 A no-matplotlib grapher painted with QPainter
-([`gui/graph_dialog.py`](../qcell/gui/graph_dialog.py), backed by
+([`gui/dialogs/graph_dialog.py`](../qcell/gui/dialogs/graph_dialog.py), backed by
 [`core/graphing.py`](../qcell/core/graphing.py)). It can:
 
 - **Plot** a math expression of `x` over a range (sandboxed evaluator, `^`→`**`).
@@ -124,7 +124,7 @@ A no-matplotlib grapher painted with QPainter
 - **Histogram** of a column; **Scatter** of two columns (a third colours the
   points); **Regression** scatter with the least-squares fit line.
 - **Spectrum (FFT)** and **Spectrogram** of the selected column (via
-  [`core/signal.py`](../qcell/core/signal.py)).
+  [`core/science/signal.py`](../qcell/core/science/signal.py)).
 - **PCA scatter** and **k-means cluster scatter** of the selected matrix, and an
   **ROC curve** from a true-label column plus a score column.
 
@@ -134,8 +134,8 @@ plot of an expression or the selected column.
 ## ML tool
 
 Light machine learning over a numeric samples × features matrix
-([`gui/ml_dialog.py`](../qcell/gui/ml_dialog.py)), backed by the pure-Python
-[`core/ml.py`](../qcell/core/ml.py) and [`core/cluster.py`](../qcell/core/cluster.py)
+([`gui/dialogs/ml_dialog.py`](../qcell/gui/dialogs/ml_dialog.py)), backed by the pure-Python
+[`core/science/ml.py`](../qcell/core/science/ml.py) and [`core/science/cluster.py`](../qcell/core/science/cluster.py)
 (no numpy/sklearn required). Pick an operation and a parameter; the result
 (scores, labels, coefficients) is written back to the grid:
 
@@ -148,14 +148,14 @@ Light machine learning over a numeric samples × features matrix
 
 Model evaluation helpers — train/test split, k-fold cross-validation, confusion
 matrix, accuracy/precision/recall/F1, and ROC/AUC — live in
-[`core/metrics.py`](../qcell/core/metrics.py), also dependency-free and seedable
+[`core/science/metrics.py`](../qcell/core/science/metrics.py), also dependency-free and seedable
 for reproducible splits.
 
 ## Matrix tool
 
-Linear-algebra over grid ranges ([`gui/matrix_dialog.py`](../qcell/gui/matrix_dialog.py),
-backed by [`core/matrix.py`](../qcell/core/matrix.py) and
-[`core/eigen.py`](../qcell/core/eigen.py)). Reads numeric ranges and computes:
+Linear-algebra over grid ranges ([`gui/dialogs/matrix_dialog.py`](../qcell/gui/dialogs/matrix_dialog.py),
+backed by [`core/science/matrix.py`](../qcell/core/science/matrix.py) and
+[`core/science/eigen.py`](../qcell/core/science/eigen.py)). Reads numeric ranges and computes:
 transpose, inverse, determinant, multiply (A·B), solve (A·x = b), eigenvalues,
 Cholesky factor, QR (Q and R), and condition number. Matrix results are written
 back starting at a target cell; scalar results (determinant, condition number)

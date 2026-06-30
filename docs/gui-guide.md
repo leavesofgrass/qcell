@@ -228,6 +228,27 @@ several steps at once. (Note: deleting a sheet is *not* reversible with
   descending* items, and by right-clicking a column header. *Tools → Copy
   selection as Markdown* copies the selection as a GFM table.
 
+## Right-click context menu
+
+Right-click any cell (or selection) for a context menu wired to the same actions
+as the menu bar — built for quick, keyboard-light editing:
+
+- **Clipboard** — Cut / Copy / Paste, and *Copy as Markdown*.
+- **Insert / Delete** — rows above/below, columns left/right, delete row(s)/column(s).
+- **Clear contents**.
+- **Format** — Bold / Italic / Underline, text & fill colour, clear styles.
+- **Number format** — the full General / Integer / Currency / Percent / Scientific / … list.
+- **Conditional format…**
+- **Data** — Sort ascending/descending, Fill series, *Recode / clean…*, and
+  *Open selection in pandas…*.
+
+## Clipboard history
+
+`Ctrl+Shift+V` (also *View → Clipboard history*) opens the copy history as a
+searchable `rofi`/`dmenu`-style palette: type to fuzzy-filter past copies, press
+`Enter` to paste the chosen fragment at the cursor (pinned entries are listed
+first). To pin, remove, or clear entries, use *View → Manage clipboard…*.
+
 ## Data validation
 
 *Data → Data validation…* attaches a validation rule to the selected cells.
