@@ -35,6 +35,10 @@ if _HAS_MSGSPEC:
         dyslexic_font: bool = False
         calc_model: str = ""
         calc_style: str = "image"
+        calc_open: bool = False
+        calc_degrees: bool = False
+        last_sheet: int = 0
+        last_cell: str = ""
         faceplate_assets_dir: str = ""
         faceplate_repo: str = ""
         open_default_panels: bool = True
@@ -69,6 +73,10 @@ else:
         dyslexic_font: bool = False
         calc_model: str = ""
         calc_style: str = "image"
+        calc_open: bool = False
+        calc_degrees: bool = False
+        last_sheet: int = 0
+        last_cell: str = ""
         faceplate_assets_dir: str = ""
         faceplate_repo: str = ""
         open_default_panels: bool = True

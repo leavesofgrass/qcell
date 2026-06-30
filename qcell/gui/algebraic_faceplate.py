@@ -26,6 +26,9 @@ class AlgebraicFaceplate(QWidget):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self._calc = AlgebraicCalc()
+        s = self._host_settings()
+        if s is not None:                       # restore the saved Deg/Rad mode
+            self._calc.set_degrees(bool(getattr(s, "calc_degrees", False)))
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         layout = QVBoxLayout(self)
         self._display = QLabel("0", self)
@@ -48,6 +51,11 @@ class AlgebraicFaceplate(QWidget):
         self._refresh()
 
     # -- interop -----------------------------------------------------------
+
+    def _host_settings(self):
+        """The window's Settings, reached via the owning calculator panel (or None)."""
+        win = getattr(self.parent(), "_window", None)
+        return getattr(win, "_settings", None)
 
     def value(self) -> float:
         # The currently shown/typed value (evaluating an un-equalled expression),
@@ -79,6 +87,9 @@ class AlgebraicFaceplate(QWidget):
             self._calc.memory_clear()
         elif action == "@deg":
             self._calc.set_degrees(not self._calc.degrees)
+            s = self._host_settings()
+            if s is not None:                   # remember Deg/Rad across sessions
+                s.calc_degrees = self._calc.degrees
         else:
             self._calc.input(action)
         self._refresh()

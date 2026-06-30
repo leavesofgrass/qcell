@@ -221,6 +221,9 @@ class DocumentMixin:
         rebuild = getattr(self, "_rebuild_tabs", None)
         if rebuild is not None:
             rebuild()
+        update_cluster = getattr(self, "_update_status_cluster", None)
+        if update_cluster is not None:
+            update_cluster()
 
     def commit_table_to_sheet(self) -> None:
         """Push any edited cell back into the sheet model (raw text wins)."""

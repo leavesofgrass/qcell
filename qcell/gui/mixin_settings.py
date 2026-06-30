@@ -43,8 +43,9 @@ class SettingsMixin:
         theme = theme_for(name)
         app = QApplication.instance()
         if app is not None:
-            apply_theme(app, name, theme.tokens(), self._ui_font_qss())
+            apply_theme(app, name, theme.tokens(), self._ui_font_qss() + self._zoom_qss())
         self._theme = theme  # custom-painted surfaces read this
+        self._update_status_cluster()
 
     def _ui_font_qss(self) -> str:
         """Stylesheet layer forcing the dyslexia font on text-heavy widgets (cells,
@@ -62,6 +63,32 @@ class SettingsMixin:
                 "QListView, QTreeView, QPlainTextEdit, QTextEdit "
                 f'{{ font-family: "{fam}"; }}\n')
 
+    # --- UI zoom (scales the base font via a QSS layer; persisted in settings) --
+
+    def _zoom_qss(self) -> str:
+        """Stylesheet layer scaling the base font size by ``settings.zoom``. The
+        theme .qss sets ``font-size`` on the base selector, so zoom must go through
+        the stylesheet (a ``setFont`` would be overridden)."""
+        z = float(getattr(self._settings, "zoom", 1.0) or 1.0)
+        if abs(z - 1.0) < 1e-6:
+            return ""
+        return f"\n* {{ font-size: {max(6, round(13 * z))}px; }}\n"
+
+    def _set_zoom(self, z: float) -> None:
+        z = max(0.5, min(3.0, round(z, 1)))
+        self._settings.zoom = z
+        self.apply_current_theme()
+        self._set_status(f"zoom {int(z * 100)}%")
+
+    def zoom_in(self) -> None:
+        self._set_zoom(float(getattr(self._settings, "zoom", 1.0) or 1.0) + 0.1)
+
+    def zoom_out(self) -> None:
+        self._set_zoom(float(getattr(self._settings, "zoom", 1.0) or 1.0) - 0.1)
+
+    def reset_zoom(self) -> None:
+        self._set_zoom(1.0)
+
     def choose_theme(self) -> None:
         from .theme_dialog import ThemeDialog
 
@@ -75,6 +102,7 @@ class SettingsMixin:
     def toggle_vim_mode(self) -> None:
         self._settings.vim_mode = not getattr(self._settings, "vim_mode", True)
         self._set_status(f"vim mode: {'on' if self._settings.vim_mode else 'off'}")
+        self._update_status_cluster()
 
     def _collect_shortcuts(self, menu) -> list[tuple[str, str]]:
         out: list[tuple[str, str]] = []
@@ -295,6 +323,7 @@ class SettingsMixin:
         win.show()
         win.raise_()
         win.activateWindow()
+        self._settings.calc_open = True            # restore it open next session
         if getattr(win._panel, "_widget", None) is not None:
             win._panel._widget.setFocus()   # so the keyboard drives the calculator
 
@@ -303,6 +332,7 @@ class SettingsMixin:
         win = self._calculator_window()
         if win.isVisible():
             win.hide()
+            self._settings.calc_open = False
         else:
             self.show_calculator()
 

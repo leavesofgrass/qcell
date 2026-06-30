@@ -76,6 +76,10 @@ class MainWindow(NavigationMixin, DocumentMixin, SettingsMixin, QMainWindow):
         self.refresh_table()
         self._update_title()
         self._start_autosave()
+        self._update_status_cluster()
+        self._restore_window_state()
+        if getattr(self._settings, "calc_open", False):
+            self.show_calculator()
 
     # --- construction -----------------------------------------------------
 
@@ -157,6 +161,17 @@ class MainWindow(NavigationMixin, DocumentMixin, SettingsMixin, QMainWindow):
         self._progress.setTextVisible(False)
         self._progress.setVisible(False)
         self.statusBar().addPermanentWidget(self._progress)
+        # State cluster on the right: vim mode · theme · saved/unsaved.
+        from ._qtcompat import QLabel
+
+        self._sb_vim = QLabel("", self)
+        self._sb_theme = QLabel("", self)
+        self._sb_dirty = QLabel("", self)
+        for w, nm in ((self._sb_vim, "vim mode"), (self._sb_theme, "theme"),
+                      (self._sb_dirty, "saved state")):
+            w.setAccessibleName(nm)
+            w.setStyleSheet("padding:0 8px;")
+            self.statusBar().addPermanentWidget(w)
         self.resize(900, 600)
 
     # a soft palette so sheet tabs are visually distinguishable
@@ -285,6 +300,10 @@ class MainWindow(NavigationMixin, DocumentMixin, SettingsMixin, QMainWindow):
         m_view.addSeparator()
         self._act(m_view, "Toggle &vim mode", self.toggle_vim_mode)
         self._act(m_view, "Toggle &OpenDyslexic font", self.toggle_dyslexic_font)
+        m_view.addSeparator()
+        self._act(m_view, "Zoom &in", self.zoom_in, "Ctrl+=")
+        self._act(m_view, "Zoom &out", self.zoom_out, "Ctrl+-")
+        self._act(m_view, "&Reset zoom", self.reset_zoom, "Ctrl+0")
 
         # --- Insert (rows/cols · objects) ---------------------------------
         m_insert = mb.addMenu("&Insert")
@@ -468,6 +487,59 @@ class MainWindow(NavigationMixin, DocumentMixin, SettingsMixin, QMainWindow):
             lambda: save_settings(self._settings, rt.CONFIG_DIR / "settings.json")
         )
         self._autosave.start(30_000)
+
+    # --- window state + status cluster -----------------------------------
+
+    def _update_status_cluster(self) -> None:
+        """Refresh the right-side status indicators (vim · theme · saved state)."""
+        if getattr(self, "_sb_vim", None) is None:
+            return
+        self._sb_vim.setText("VIM" if getattr(self._settings, "vim_mode", False) else "INS")
+        self._sb_theme.setText(getattr(self._settings, "theme", ""))
+        self._sb_dirty.setText("● unsaved" if getattr(self._doc, "dirty", False) else "○ saved")
+
+    def _save_window_state(self) -> None:
+        """Persist window geometry, the active sheet, and the cursor cell."""
+        try:
+            g = self.geometry()
+            self._settings.window_geometry = {"x": g.x(), "y": g.y(),
+                                              "w": g.width(), "h": g.height()}
+            if getattr(self, "_tabs", None) is not None:
+                self._settings.last_sheet = self._tabs.currentIndex()
+            self._settings.last_cell = to_a1(max(0, self._table.currentRow()),
+                                             max(0, self._table.currentColumn()))
+        except Exception:
+            pass
+
+    def _restore_window_state(self) -> None:
+        """Restore geometry / active sheet / cursor cell saved last session."""
+        try:
+            gd = getattr(self._settings, "window_geometry", {}) or {}
+            if all(k in gd for k in ("x", "y", "w", "h")):
+                self.resize(int(gd["w"]), int(gd["h"]))
+                self.move(int(gd["x"]), int(gd["y"]))
+            si = int(getattr(self._settings, "last_sheet", 0) or 0)
+            if getattr(self, "_tabs", None) is not None and 0 <= si < self._tabs.count():
+                self._tabs.setCurrentIndex(si)
+            cell = getattr(self._settings, "last_cell", "") or ""
+            if cell:
+                from ..core.reference import parse_a1
+
+                r, c = parse_a1(cell)
+                self._table.setCurrentCell(r, c)
+        except Exception:
+            pass
+
+    def closeEvent(self, event) -> None:  # noqa: N802 (Qt override)
+        from .. import _runtime as rt
+        from ..settings import save_settings
+
+        self._save_window_state()
+        try:
+            save_settings(self._settings, rt.CONFIG_DIR / "settings.json")
+        except Exception:
+            pass
+        super().closeEvent(event)
 
     # --- formula bar / selection -----------------------------------------
 
