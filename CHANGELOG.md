@@ -31,6 +31,12 @@ All notable changes to qcell are documented here. The format follows
   speed.
 
 ### Added
+- **Editable sheet widget (Jupyter roadmap Phase 3)** — `qcell/widget.py` exposes a
+  qcell sheet as an interactive grid inside a notebook via **anywidget**:
+  `sheet_widget(sheet)` renders an editable HTML table whose cell edits round-trip
+  back into the live sheet and recompute formulas. The data-sync core
+  (`sheet_state` / `apply_edit` / `apply_edits`) is plain, tested functions over a
+  Sheet; anywidget is imported only when the widget is built, so it stays opt-in.
 - **qcell as a Jupyter kernel (Jupyter roadmap Phase 2)** — a new `qcell/kernel.py`.
   Its brain, `QcellShell`, runs notebook cells in the qcell console namespace over
   a workbook and returns results already in Jupyter execute-result shape (a
