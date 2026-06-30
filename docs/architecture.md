@@ -17,19 +17,32 @@ core  ──►  engine  ──►  gui / tui
 (pure)     (adapters)   (front-ends)
 ```
 
-- **`qcell/core/` — pure, stdlib-only.** The formula engine (tokenizer, parser,
-  evaluator, ~110 functions, sheet/workbook model), CSV I/O, search, fill/sort,
-  conditional formatting, the RPN calculator, graphing, completion, and the
-  reference-shifting machinery all live here. **No Qt, no curses, no Textual, no
-  third-party imports** — ever. core can run headless with nothing but the
-  standard library.
+- **`qcell/core/` — pure, stdlib-only.** The spreadsheet engine and formula
+  machinery (tokenizer, parser, evaluator, ~110 functions, sheet/workbook model,
+  search, fill/sort, completion, reference-shifting) live at the `core/` root, with
+  the pluggable libraries grouped into subpackages:
+  - **`core/io/`** — tabular import/export adapters (CSV/TSV, XML, Markdown, SQLite,
+    flat-file, JSON exchange, R, Jupyter).
+  - **`core/calc/`** — calculator engines (RPN Voyager 12C/15C/16C, algebraic, TI).
+  - **`core/science/`** — numerical/statistical engines (linear algebra, calculus/
+    ODEs, signal/spectral, statistics, regression, ML, finance, units).
+  - **`core/format/`** — cell value formatting, styles, conditional formatting,
+    colour maps, ANSI palette.
+
+  **No Qt, no curses, no Textual, no third-party imports** — ever. core can run
+  headless with nothing but the standard library.
 - **`qcell/engine/` — adapters with optional dependencies.** This is where
   optional packages are allowed. `engine/excel_io.py` uses openpyxl;
   `engine/document.py` dispatches open/save by file extension. Everything here
   has a fallback so the app still works when the optional dep is missing.
 - **`qcell/gui/` and `qcell/tui.py` — front-ends.** The Qt desktop GUI and the
   curses/Textual TUI. These depend on core and engine, never the other way
-  around.
+  around. The GUI groups its widgets into subpackages: **`gui/grid/`** (the
+  virtualized table model/view + frozen panes), **`gui/dialogs/`** (the ~20 modal
+  dialogs and browsers), **`gui/calc/`** (the floating calculator panel + painted/
+  image faceplates), and **`gui/console/`** (the embedded Python console, its
+  out-of-process bridge, and the terminals). The main window, mixins, theming, and
+  the `_qtcompat` shim stay at the `gui/` root.
 
 ### Why the seam matters
 
@@ -75,7 +88,7 @@ ever branches on which binding is installed.
   `__all__` in `_qtcompat.py`; modules then do
   `from ._qtcompat import QTableView, Qt, ...`.
 
-## The virtualized grid (`gui/grid_model.py`)
+## The virtualized grid (`gui/grid/grid_model.py`)
 
 The grid is a `QTableView` backed by **`QcellTableModel`**, a virtualized
 `QAbstractTableModel` over the active `Sheet`. This is deliberately *not* a
