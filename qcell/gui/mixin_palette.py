@@ -99,6 +99,7 @@ class PaletteMixin:
             "Send calculator value -> cell": self.calc_to_cells,
             "Terminal...": self.show_terminal,
             "Matrix tool...": self.show_matrix_tool,
+            "File manager...": self.show_file_manager,
             "RF toolkit...": self.show_rf_tool,
             "Smith chart...": self.show_smith_chart,
             "Antenna pattern...": self.show_antenna_pattern,

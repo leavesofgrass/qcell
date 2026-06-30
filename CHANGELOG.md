@@ -31,6 +31,16 @@ All notable changes to qcell are documented here. The format follows
   speed.
 
 ### Added
+- **Dual-pane file manager** (*Tools → File manager*, `Ctrl+Shift+F`) — a Worker /
+  Directory Opus-style browser: two independent panes where operations act on the
+  active pane's selection with the other pane as the target. Copy / move / delete /
+  rename / new-folder, one-click **`.zip` and `.tar.gz` creation** and safe
+  extraction, and recursive **find** by name glob and file contents. A row of
+  **configurable command buttons** runs shell commands with `{dir}` / `{path}` /
+  `{name}` / `{sel}` / `{dest}` placeholders (Worker scripts these in Lua; qcell
+  keeps it in Python). Built on new pure-stdlib core modules — `core/fileops.py`,
+  `core/archive.py` (zip-slip/tar-slip-safe), `core/filesearch.py`,
+  `core/fmbuttons.py` — each fully tested without a GUI.
 - **Editable sheet widget (Jupyter roadmap Phase 3)** — `qcell/widget.py` exposes a
   qcell sheet as an interactive grid inside a notebook via **anywidget**:
   `sheet_widget(sheet)` renders an editable HTML table whose cell edits round-trip

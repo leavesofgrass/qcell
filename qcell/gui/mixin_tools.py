@@ -97,6 +97,15 @@ class ToolsMixin:
 
         MatrixDialog(self).exec()
 
+    def show_file_manager(self) -> None:
+        from .dialogs.filemanager_dialog import FileManagerDialog
+
+        if getattr(self, "_file_manager", None) is None:
+            self._file_manager = FileManagerDialog(self)
+        self._file_manager.refresh_both()
+        self._file_manager.show()
+        self._file_manager.raise_()
+
     def show_solver(self) -> None:
         from .dialogs.solver_dialog import SolverDialog
 

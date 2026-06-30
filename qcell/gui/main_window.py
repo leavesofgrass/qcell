@@ -402,6 +402,8 @@ class MainWindow(NavigationMixin, DocumentMixin, DocumentIOMixin, SettingsMixin,
         self._act(m_sci, "Smith &chart...", self.show_smith_chart)
         self._act(m_sci, "&Antenna pattern...", self.show_antenna_pattern)
         m_tools.addSeparator()
+        self._act(m_tools, "&File manager...", self.show_file_manager, "Ctrl+Shift+F")
+        m_tools.addSeparator()
         self._macros_menu = m_tools.addMenu("&Macros")
         self._rebuild_macros_menu()
         m_rec = m_tools.addMenu("&Recording")
