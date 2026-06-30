@@ -174,6 +174,7 @@ class SettingsMixin:
             "Graph…": self.show_graph,
             "Equation editor…": self.show_equation,
             "Clipboard history…": self.show_clipboard,
+            "Manage clipboard…": self.manage_clipboard,
             "Toggle OpenDyslexic font": self.toggle_dyslexic_font,
             "Conditional format…": self.add_conditional_format,
             "Clear conditional formats": self.clear_conditional_formats,
@@ -250,7 +251,48 @@ class SettingsMixin:
 
     # --- RPN calculator, clipboard manager, dyslexia font ----------------
 
+    def _paste_history_text(self, text: str) -> None:
+        """Paste a clipboard-history fragment (TSV) at the cursor."""
+        from ..core.fill import clip_from_tsv, paste_clip
+
+        row = max(0, self._table.currentRow())
+        col = max(0, self._table.currentColumn())
+        clip = clip_from_tsv(text, (row, col))
+        paste_clip(self._doc.workbook.sheet, clip, (row, col),
+                   mode="absolute", on_set=self._record)
+        self._doc.mark_dirty()
+        self.refresh_table()
+        self._set_status("pasted from clipboard history")
+
+    def _clipboard_actions(self) -> dict:
+        """``{label: paste-callable}`` over the clipboard history, newest/pinned
+        first — the data behind the searchable clipboard palette."""
+        mgr = getattr(self, "_clipboard", None)
+        entries = mgr.entries() if mgr is not None else []
+        actions = {}
+        for i, e in enumerate(entries):
+            mark = "📌 " if e.pinned else ""
+            actions[f"{i + 1}. {mark}{e.label}"] = (
+                lambda t=e.text: self._paste_history_text(t))
+        return actions
+
     def show_clipboard(self) -> None:
+        """Searchable rofi/dmenu-style clipboard history — type to filter, Enter
+        pastes the chosen entry at the cursor. (Pin/remove/clear live in the
+        management dialog, `manage_clipboard`.)"""
+        from .command_palette import CommandPalette
+
+        actions = self._clipboard_actions()
+        if not actions:
+            self._set_status("clipboard history is empty")
+            return
+        dlg = CommandPalette(self, actions, placeholder="Filter clipboard history…")
+        dlg.setWindowTitle("Clipboard history")
+        if dlg.exec() and dlg.chosen() is not None:
+            dlg.chosen()()
+
+    def manage_clipboard(self) -> None:
+        """The full clipboard dialog: pin, remove, clear, copy-back."""
         from .clipboard_dialog import ClipboardDialog
 
         if getattr(self, "_clip_dialog", None) is None:
