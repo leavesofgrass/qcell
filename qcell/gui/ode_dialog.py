@@ -2,7 +2,7 @@
 
 Compiles the scalar derivative expression in ``t`` and ``y`` against the same
 sandboxed math namespace used by the grapher (so ``^`` is power and only safe
-names are exposed), solves with :mod:`qcell.core.ode`, and writes the time and
+names are exposed), solves with :mod:`qcell.core.science.ode`, and writes the time and
 solution columns back to the grid. (Coupled systems are available in the Python
 console via ``ode.solve`` with a vector field.)
 """
@@ -17,9 +17,9 @@ from ._qtcompat import (
     QMessageBox,
     QPushButton,
 )
-from ..core import ode, ode_implicit
 from ..core.graphing import _SAFE_NAMES
 from ..core.reference import parse_a1
+from ..core.science import ode, ode_implicit
 
 _EXPLICIT = ("rk4", "rk45", "euler")
 _STIFF = ("backward_euler", "implicit_trapezoid", "bdf2")

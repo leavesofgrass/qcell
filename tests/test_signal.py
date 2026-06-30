@@ -1,4 +1,4 @@
-"""Tests for qcell.core.signal (no-numpy signal/data-processing module)."""
+"""Tests for qcell.core.science.signal (no-numpy signal/data-processing module)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import math
 
 import pytest
 
-from qcell.core.signal import (
+from qcell.core.science.signal import (
     SignalError,
     apply_window,
     autocorrelation,

@@ -352,7 +352,7 @@ class GraphDialog(QDialog):
         return data
 
     def _plot_spectrum(self) -> None:
-        from ..core.fft import FFTError, rfft_magnitude
+        from ..core.science.fft import FFTError, rfft_magnitude
 
         data = self._read_selection_series()
         if len(data) < 2:
@@ -368,7 +368,7 @@ class GraphDialog(QDialog):
         self._status.setText(f"FFT magnitude — {len(data)} samples, {len(freqs)} bins (x = cycles/window)")
 
     def _plot_spectrogram(self) -> None:
-        from ..core.spectral import SpectralError, spectrogram
+        from ..core.science.spectral import SpectralError, spectrogram
 
         data = self._read_selection_series()
         frame = 64 if len(data) >= 128 else max(8, len(data) // 4)
@@ -444,7 +444,7 @@ class GraphDialog(QDialog):
         self._status.setText(f"regression: slope={slope:.4g}, intercept={intercept:.4g}, R²={r2:.4f}")
 
     def _plot_pca_scatter(self) -> None:
-        from ..core import ml
+        from ..core.science import ml
 
         m = self._read_matrix()
         if len(m) < 2 or len(m[0]) < 2:
@@ -461,8 +461,8 @@ class GraphDialog(QDialog):
         self._status.setText("PCA scatter")
 
     def _plot_cluster_scatter(self) -> None:
-        from ..core import cluster, ml
         from ..core.colormap import colorize
+        from ..core.science import cluster, ml
 
         m = self._read_matrix()
         if len(m) < 2 or len(m[0]) < 1:
@@ -490,7 +490,7 @@ class GraphDialog(QDialog):
         self._status.setText(f"cluster scatter k={k}")
 
     def _plot_roc(self) -> None:
-        from ..core import metrics
+        from ..core.science import metrics
 
         m = self._read_matrix()
         if len(m) < 2 or len(m[0]) < 2:

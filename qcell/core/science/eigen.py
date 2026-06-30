@@ -13,7 +13,7 @@ same length. The surface covers the decompositions a spreadsheet might want:
 
 Bad input (non-rectangular, non-square where square is required) and failures
 (non-convergence, singularity, non-SPD) raise :class:`EigenError`. This module
-is deliberately self-contained: it does not import :mod:`qcell.core.matrix`.
+is deliberately self-contained: it does not import :mod:`qcell.core.science.matrix`.
 
 Pure stdlib → core.
 """

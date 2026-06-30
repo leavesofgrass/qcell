@@ -1,10 +1,10 @@
-"""Tests for qcell.core.bayes (Gaussian + Multinomial naive Bayes)."""
+"""Tests for qcell.core.science.bayes (Gaussian + Multinomial naive Bayes)."""
 
 from __future__ import annotations
 
 import pytest
 
-from qcell.core.bayes import BayesError, GaussianNB, MultinomialNB
+from qcell.core.science.bayes import BayesError, GaussianNB, MultinomialNB
 
 # --------------------------------------------------------------------------- #
 # GaussianNB.

@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import sqlite3
 
-from qcell.core.sheet import Sheet
 from qcell.core.io.sqlite_io import (
     list_tables,
     load_database,
     load_table,
     save_table,
 )
+from qcell.core.sheet import Sheet
 
 
 def _make_db(path: str) -> None:

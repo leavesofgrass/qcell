@@ -1,10 +1,10 @@
-"""Tests for :mod:`qcell.core.metrics` (pure-stdlib model-evaluation utilities)."""
+"""Tests for :mod:`qcell.core.science.metrics` (pure-stdlib model-evaluation utilities)."""
 
 from __future__ import annotations
 
 import pytest
 
-from qcell.core.metrics import (
+from qcell.core.science.metrics import (
     MetricsError,
     accuracy,
     auc,

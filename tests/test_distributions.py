@@ -11,8 +11,8 @@ import math
 
 import pytest
 
-from qcell.core import stats
 from qcell.core.errors import is_error
+from qcell.core.science import stats
 from qcell.core.sheet import Sheet
 
 

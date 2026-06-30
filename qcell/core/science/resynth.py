@@ -1,8 +1,8 @@
 """Short-time Fourier transform analysis/resynthesis (pure stdlib).
 
 A small, dependency-free STFT toolkit for qcell ``core`` (stdlib only — no
-numpy). It builds on :mod:`qcell.core.fft` (FFT/IFFT/magnitude) and
-:mod:`qcell.core.signal` (analysis windows) to offer:
+numpy). It builds on :mod:`qcell.core.science.fft` (FFT/IFFT/magnitude) and
+:mod:`qcell.core.science.signal` (analysis windows) to offer:
 
 - :func:`stft_complex` — the full complex STFT: slide an analysis window over the
   signal, window each frame and FFT it into a length-``frame_size`` complex
@@ -26,8 +26,8 @@ from __future__ import annotations
 
 import cmath
 
-from qcell.core import fft
-from qcell.core.signal import _WINDOWS
+from qcell.core.science import fft
+from qcell.core.science.signal import _WINDOWS
 
 #: Floor used when dividing by the COLA window-squared envelope (avoid /0).
 _EPS = 1e-12

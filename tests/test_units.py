@@ -1,4 +1,4 @@
-"""Tests for the unit-conversion engine (``qcell.core.units``)."""
+"""Tests for the unit-conversion engine (``qcell.core.science.units``)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import math
 
 import pytest
 
-from qcell.core.units import (
+from qcell.core.science.units import (
     CATEGORIES,
     UnitError,
     category_of,

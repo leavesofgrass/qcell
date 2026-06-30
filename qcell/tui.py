@@ -321,7 +321,7 @@ class TuiEditor:
             self.message = f"unknown command: {cmd}"
 
     def _handle_convert(self, args: list[str]) -> None:
-        from .core.units import UnitError, convert
+        from .core.science.units import UnitError, convert
 
         if len(args) != 3:
             self.message = "usage: :convert <value> <from> <to>"

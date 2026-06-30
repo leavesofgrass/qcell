@@ -1,4 +1,4 @@
-"""Tests for :mod:`qcell.core.spectral`: next_pow2, STFT/spectrogram, fft_convolve."""
+"""Tests for :mod:`qcell.core.science.spectral`: next_pow2, STFT/spectrogram, fft_convolve."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ import random
 
 import pytest
 
-from qcell.core import fft as core_fft
-from qcell.core import spectral
+from qcell.core.science import fft as core_fft
+from qcell.core.science import spectral
 
 # --- next_pow2 -------------------------------------------------------------
 

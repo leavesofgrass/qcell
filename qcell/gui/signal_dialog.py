@@ -1,7 +1,7 @@
 """Signal / data tool — apply a DSP operation over a column of samples.
 
 Reads a numeric range (flattened row-major into a 1-D series), applies an
-operation from :mod:`qcell.core.signal` / :mod:`qcell.core.fft`, and writes the
+operation from :mod:`qcell.core.science.signal` / :mod:`qcell.core.science.fft`, and writes the
 result back as one or more columns starting at a target cell (or reports a scalar
 like RMS in the status line).
 """
@@ -16,11 +16,11 @@ from ._qtcompat import (
     QMessageBox,
     QPushButton,
 )
-from ..core import fft as F
-from ..core import filters as FL
-from ..core import signal as S
-from ..core import spectral as SP
 from ..core.reference import parse_a1, parse_range, to_a1
+from ..core.science import fft as F
+from ..core.science import filters as FL
+from ..core.science import signal as S
+from ..core.science import spectral as SP
 
 # label -> (handler(data, param) -> list[list[float]] | float, needs_param_hint)
 _OPS = [

@@ -1,0 +1,1 @@
+"""qcell.core.science — numerical and statistical engines (linear algebra, calculus/ODEs, signal/spectral, statistics, regression, ML, finance, units). Pure-stdlib core layer with optional accelerated backends."""

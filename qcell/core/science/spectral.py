@@ -1,7 +1,7 @@
 """Spectral analysis: STFT / spectrogram and FFT-based fast convolution.
 
 A small, dependency-free extension of qcell's spectral toolkit built on top of
-:mod:`qcell.core.fft` (transforms) and :mod:`qcell.core.signal` (windows).
+:mod:`qcell.core.science.fft` (transforms) and :mod:`qcell.core.science.signal` (windows).
 Everything works on plain ``list[float]`` in IEEE doubles via the stdlib
 :mod:`math` and :mod:`cmath` modules only -- no numpy, no third-party code
 (qcell ``core`` is stdlib-only).
@@ -11,7 +11,7 @@ one-sided magnitude spectra over sliding, windowed frames) and
 :func:`spectrogram` (the same surface expressed as power in dB).
 
 Convolution: :func:`fft_convolve` (linear convolution of two real signals via
-the FFT, matching :func:`qcell.core.fft.convolve` numerically).
+the FFT, matching :func:`qcell.core.science.fft.convolve` numerically).
 
 Helper: :func:`next_pow2` (smallest power of two ``>= n``).
 
@@ -22,8 +22,8 @@ from __future__ import annotations
 
 import math
 
-from qcell.core import fft as _fft
-from qcell.core import signal as _signal
+from qcell.core.science import fft as _fft
+from qcell.core.science import signal as _signal
 
 
 class SpectralError(Exception):
@@ -62,7 +62,7 @@ def stft(
 
     Slide a window of ``frame_size`` over ``samples`` stepping by ``hop`` (which
     defaults to ``frame_size // 2``); window each frame with the named window
-    (:func:`qcell.core.signal.apply_window`) and take the one-sided magnitude
+    (:func:`qcell.core.science.signal.apply_window`) and take the one-sided magnitude
     spectrum (``frame_size // 2 + 1`` bins).
 
     Returns ``(times, freqs, mags)`` where ``times[i]`` is the start of frame
@@ -130,7 +130,7 @@ def fft_convolve(a: list[float], b: list[float]) -> list[float]:
     Both inputs are zero-padded to ``next_pow2(len(a) + len(b) - 1)``,
     transformed, multiplied pointwise, inverse-transformed, and the real parts
     are taken and truncated to ``len(a) + len(b) - 1``. The result matches
-    :func:`qcell.core.fft.convolve` numerically. Raises :class:`SpectralError`
+    :func:`qcell.core.science.fft.convolve` numerically. Raises :class:`SpectralError`
     if either input is empty.
     """
     if not a or not b:

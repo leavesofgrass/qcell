@@ -29,8 +29,8 @@ from ._qtcompat import (
     Qt,
     QWidget,
 )
-from ..core.graphing import compile_expr
 from ..core.calc.ti_engine import SCREEN_H, SCREEN_W, TIEngine
+from ..core.graphing import compile_expr
 
 # Per-model skin: (display name, body colour, accent, window-key label, colour screen?).
 SKINS = {

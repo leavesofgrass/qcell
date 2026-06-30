@@ -2,8 +2,8 @@
 
 Everything here is implemented by hand with the standard library only
 (``math``, no numpy), reusing the in-house linear-algebra engines
-(:mod:`qcell.core.eigen` for the symmetric eigensystem and
-:mod:`qcell.core.matrix` for linear solves). Data is plain Python:
+(:mod:`qcell.core.science.eigen` for the symmetric eigensystem and
+:mod:`qcell.core.science.matrix` for linear solves). Data is plain Python:
 
 * ``X`` is a ``list[list[float]]`` — rows are samples, columns are features.
 * ``y`` is a ``list[float]`` (targets) or ``list[int]`` (class labels).
@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import math
 
-from qcell.core import eigen, matrix
+from qcell.core.science import eigen, matrix
 
 Matrix = list[list[float]]
 Vector = list[float]

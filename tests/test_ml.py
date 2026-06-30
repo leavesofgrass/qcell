@@ -1,4 +1,4 @@
-"""Tests for qcell.core.ml — no-numpy machine learning."""
+"""Tests for qcell.core.science.ml — no-numpy machine learning."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import math
 
 import pytest
 
-from qcell.core import ml
+from qcell.core.science import ml
 
 # --------------------------------------------------------------------------- #
 # Linear regression.

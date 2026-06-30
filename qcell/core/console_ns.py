@@ -120,7 +120,10 @@ def build_namespace(workbook, refresh=None) -> dict:
                 sh.set_cell(r + i, c0 + j, "" if v is None else str(v))
         refresh()
 
-    from . import (
+    from .calc import algebraic, ti_engine
+    from .calc.rpn import RPN
+    from .graphing import compile_expr
+    from .science import (
         bayes,
         cluster,
         complexnum,
@@ -143,9 +146,6 @@ def build_namespace(workbook, refresh=None) -> dict:
         trees,
         units,
     )
-    from .calc import algebraic, ti_engine
-    from .calc.rpn import RPN
-    from .graphing import compile_expr
 
     _np = _opt("numpy")
     _pd = _opt("pandas")

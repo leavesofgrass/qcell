@@ -1,7 +1,7 @@
 """Matrix tool — apply a matrix operation over grid ranges.
 
 Reads numeric ranges from the sheet, computes (transpose / inverse / determinant
-/ multiply / solve) via :mod:`qcell.core.matrix`, and writes the result back
+/ multiply / solve) via :mod:`qcell.core.science.matrix`, and writes the result back
 starting at a target cell (or reports a scalar in the status line).
 """
 
@@ -15,9 +15,9 @@ from ._qtcompat import (
     QMessageBox,
     QPushButton,
 )
-from ..core import eigen as E
-from ..core import matrix as M
 from ..core.reference import parse_a1, parse_range, to_a1
+from ..core.science import eigen as E
+from ..core.science import matrix as M
 
 _OPS = ["Transpose", "Inverse", "Determinant", "Multiply (A·B)", "Solve (A·x=b)",
         "Eigenvalues", "Cholesky (L)", "QR — Q", "QR — R", "Condition number"]

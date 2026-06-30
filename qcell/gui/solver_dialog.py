@@ -2,7 +2,7 @@
 
 Compiles the expression with the sandboxed :func:`qcell.core.graphing.compile_expr`
 (so ``^`` means power and only a safe math namespace is exposed) and applies
-:mod:`qcell.core.numeric`. The result is written to an output cell and/or the
+:mod:`qcell.core.science.numeric`. The result is written to an output cell and/or the
 status line.
 """
 
@@ -16,9 +16,9 @@ from ._qtcompat import (
     QMessageBox,
     QPushButton,
 )
-from ..core import numeric as N
 from ..core.graphing import compile_expr
 from ..core.reference import parse_a1
+from ..core.science import numeric as N
 
 _MODES = [
     "Root — bisection [a, b]",

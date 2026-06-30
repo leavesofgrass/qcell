@@ -1,4 +1,4 @@
-"""Tests for the STFT analysis/resynthesis module (:mod:`qcell.core.resynth`)."""
+"""Tests for the STFT analysis/resynthesis module (:mod:`qcell.core.science.resynth`)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import math
 
 import pytest
 
-from qcell.core import fft, resynth
+from qcell.core.science import fft, resynth
 
 
 def _tone(n: int = 512, freq: float = 5.0, period: float = 128.0) -> list[float]:

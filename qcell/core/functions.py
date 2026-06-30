@@ -299,7 +299,7 @@ def _regress(args, fn):
     pair = _paired(args)  # (ys, xs) in argument order
     if pair is None or len(pair[0]) < 2:
         return CellError(CellError.DIV0)
-    from .regression import RegressionError
+    from .science.regression import RegressionError
 
     try:
         return fn(pair[1], pair[0])  # fn(xs, ys)
@@ -308,19 +308,19 @@ def _regress(args, fn):
 
 
 def _slope(args):
-    from .regression import slope
+    from .science.regression import slope
 
     return _regress(args, slope)
 
 
 def _intercept(args):
-    from .regression import intercept
+    from .science.regression import intercept
 
     return _regress(args, intercept)
 
 
 def _rsq(args):
-    from .regression import rsq
+    from .science.regression import rsq
 
     return _regress(args, rsq)
 
@@ -331,7 +331,7 @@ def _forecast(args):
     xs = _numbers([_arg(args, 2)])
     if x is None or len(xs) != len(ys) or len(xs) < 2:
         return CellError(CellError.VALUE)
-    from .regression import RegressionError, forecast
+    from .science.regression import RegressionError, forecast
 
     try:
         return forecast(x, xs, ys)
@@ -343,7 +343,7 @@ def _forecast(args):
 
 
 def _complex_build(args):
-    from .complexnum import ComplexError, complexnum
+    from .science.complexnum import ComplexError, complexnum
 
     try:
         return complexnum(_as_number(_arg(args, 0, 0)), _as_number(_arg(args, 1, 0)))
@@ -353,7 +353,7 @@ def _complex_build(args):
 
 def _c_unary(name):
     def f(args):
-        from . import complexnum as C
+        from .science import complexnum as C
 
         try:
             return getattr(C, name)(_text(_arg(args, 0, "0")))
@@ -365,7 +365,7 @@ def _c_unary(name):
 
 def _c_binary(name):
     def f(args):
-        from . import complexnum as C
+        from .science import complexnum as C
 
         try:
             return getattr(C, name)(_text(_arg(args, 0, "0")), _text(_arg(args, 1, "0")))
@@ -377,7 +377,7 @@ def _c_binary(name):
 
 def _c_variadic(name):
     def f(args):
-        from . import complexnum as C
+        from .science import complexnum as C
 
         try:
             return getattr(C, name)(*[_text(a) for a in _flatten(args)])
@@ -388,7 +388,7 @@ def _c_variadic(name):
 
 
 def _impower(args):
-    from .complexnum import im_power
+    from .science.complexnum import im_power
 
     try:
         return im_power(_text(_arg(args, 0, "0")), _as_number(_arg(args, 1, 1)))
@@ -400,7 +400,7 @@ def _impower(args):
 
 
 def _convert(args):
-    from .units import UnitError, convert
+    from .science.units import UnitError, convert
 
     val = _as_number(_arg(args, 0))
     try:
@@ -410,7 +410,7 @@ def _convert(args):
 
 
 def _interp(args):
-    from .interp import InterpError, linear
+    from .science.interp import InterpError, linear
 
     x = _try_num(_arg(args, 0))
     xs = _numbers([_arg(args, 1)])
@@ -424,7 +424,7 @@ def _interp(args):
 
 
 def _rms(args):
-    from .signal import SignalError, rms
+    from .science.signal import SignalError, rms
 
     nums = _numbers(args)
     if not nums:
@@ -436,7 +436,7 @@ def _rms(args):
 
 
 def _skew(args):
-    from .stats import StatsError, skewness
+    from .science.stats import StatsError, skewness
 
     nums = _numbers(args)
     try:
@@ -446,7 +446,7 @@ def _skew(args):
 
 
 def _kurt(args):
-    from .stats import StatsError, kurtosis
+    from .science.stats import StatsError, kurtosis
 
     nums = _numbers(args)
     try:
@@ -456,7 +456,7 @@ def _kurt(args):
 
 
 def _ttest(args):
-    from .stats import StatsError, t_test_ind
+    from .science.stats import StatsError, t_test_ind
 
     a = _numbers([_arg(args, 0)])
     b = _numbers([_arg(args, 1)])
@@ -470,14 +470,14 @@ def _ttest(args):
 
 
 def _normsdist(args):
-    from .stats import normal_cdf
+    from .science.stats import normal_cdf
 
     x = _try_num(_arg(args, 0))
     return CellError(CellError.VALUE) if x is None else normal_cdf(x)
 
 
 def _normsinv(args):
-    from .stats import StatsError, normal_ppf
+    from .science.stats import StatsError, normal_ppf
 
     p = _try_num(_arg(args, 0))
     if p is None:
@@ -493,7 +493,7 @@ def _normsinv(args):
 
 def _normdist(args):
     """NORMDIST(x, mean, sd, cumulative) — normal CDF (cumulative) or PDF."""
-    from .stats import StatsError, normal_cdf, normal_pdf
+    from .science.stats import StatsError, normal_cdf, normal_pdf
 
     x = _try_num(_arg(args, 0))
     mu = _try_num(_arg(args, 1, 0.0))
@@ -509,7 +509,7 @@ def _normdist(args):
 
 def _norminv(args):
     """NORMINV(p, mean, sd) — inverse normal CDF (quantile)."""
-    from .stats import StatsError, normal_ppf
+    from .science.stats import StatsError, normal_ppf
 
     p = _try_num(_arg(args, 0))
     mu = _try_num(_arg(args, 1, 0.0))
@@ -524,7 +524,7 @@ def _norminv(args):
 
 def _tdist(args):
     """TDIST(x, df, tails) — Student-t right-tail (tails=1) or two-tail (tails=2). x>=0."""
-    from .stats import StatsError, t_cdf
+    from .science.stats import StatsError, t_cdf
 
     x = _try_num(_arg(args, 0))
     df = _try_num(_arg(args, 1))
@@ -540,7 +540,7 @@ def _tdist(args):
 
 def _tinv(args):
     """TINV(p, df) — two-tailed inverse Student-t (Excel convention)."""
-    from .stats import StatsError, t_ppf
+    from .science.stats import StatsError, t_ppf
 
     p = _try_num(_arg(args, 0))
     df = _try_num(_arg(args, 1))
@@ -554,7 +554,7 @@ def _tinv(args):
 
 def _fdist(args):
     """FDIST(x, df1, df2) — F-distribution right-tail probability."""
-    from .stats import StatsError, f_cdf
+    from .science.stats import StatsError, f_cdf
 
     x = _try_num(_arg(args, 0))
     d1 = _try_num(_arg(args, 1))
@@ -569,7 +569,7 @@ def _fdist(args):
 
 def _finv(args):
     """FINV(p, df1, df2) — inverse of the F right-tail probability."""
-    from .stats import StatsError, f_ppf
+    from .science.stats import StatsError, f_ppf
 
     p = _try_num(_arg(args, 0))
     d1 = _try_num(_arg(args, 1))
@@ -584,7 +584,7 @@ def _finv(args):
 
 def _chidist(args):
     """CHIDIST(x, df) — chi-square right-tail probability."""
-    from .stats import StatsError, chi_square_cdf
+    from .science.stats import StatsError, chi_square_cdf
 
     x = _try_num(_arg(args, 0))
     df = _try_num(_arg(args, 1))
@@ -598,7 +598,7 @@ def _chidist(args):
 
 def _chiinv(args):
     """CHIINV(p, df) — inverse of the chi-square right-tail probability."""
-    from .stats import StatsError, chi_square_ppf
+    from .science.stats import StatsError, chi_square_ppf
 
     p = _try_num(_arg(args, 0))
     df = _try_num(_arg(args, 1))
@@ -612,7 +612,7 @@ def _chiinv(args):
 
 def _confidence(args):
     """CONFIDENCE(alpha, sd, n) — half-width of the normal confidence interval."""
-    from .stats import StatsError, normal_ppf
+    from .science.stats import StatsError, normal_ppf
 
     alpha = _try_num(_arg(args, 0))
     sd = _try_num(_arg(args, 1))
@@ -626,7 +626,7 @@ def _confidence(args):
 
 
 def _mdeterm(args):
-    from .matrix import MatrixError, determinant
+    from .science.matrix import MatrixError, determinant
 
     rng = _arg(args, 0)
     if not isinstance(rng, RangeValue):

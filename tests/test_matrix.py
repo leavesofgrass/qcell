@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from qcell.core.matrix import (
+from qcell.core.science.matrix import (
     MatrixError,
     add,
     determinant,

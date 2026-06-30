@@ -1,4 +1,4 @@
-"""Tests for the pure-Python FFT/spectral module (:mod:`qcell.core.fft`)."""
+"""Tests for the pure-Python FFT/spectral module (:mod:`qcell.core.science.fft`)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import math
 
 import pytest
 
-from qcell.core.fft import (
+from qcell.core.science.fft import (
     FFTError,
     convolve,
     dft,

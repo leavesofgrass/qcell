@@ -1,4 +1,4 @@
-"""Tests for :mod:`qcell.core.numeric` (root-finding, integration, derivatives)."""
+"""Tests for :mod:`qcell.core.science.numeric` (root-finding, integration, derivatives)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import math
 
 import pytest
 
-from qcell.core.numeric import (
+from qcell.core.science.numeric import (
     NumericError,
     bisection,
     derivative,

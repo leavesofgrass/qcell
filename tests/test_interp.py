@@ -1,10 +1,10 @@
-"""Tests for :mod:`qcell.core.interp` (stdlib-only 1-D interpolation)."""
+"""Tests for :mod:`qcell.core.science.interp` (stdlib-only 1-D interpolation)."""
 
 from __future__ import annotations
 
 import pytest
 
-from qcell.core.interp import (
+from qcell.core.science.interp import (
     InterpError,
     cubic_spline,
     cubic_spline_coeffs,

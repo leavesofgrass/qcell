@@ -15,7 +15,7 @@ Every routine raises :class:`SignalError` rather than returning a bogus result
 when its arguments are invalid (empty input, bad window size, out-of-range
 parameters, zero range/variance, unknown mode/name).
 
-NOTE: this module is ``qcell.core.signal`` -- a package submodule, so it does
+NOTE: this module is ``qcell.core.science.signal`` -- a package submodule, so it does
 not shadow the stdlib :mod:`signal` module. Nothing here imports ``signal``.
 """
 

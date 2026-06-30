@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from qcell.core import Sheet
-from qcell.core.workbook import Workbook
 from qcell.core.io.xml_io import from_spreadsheetml, to_spreadsheetml
+from qcell.core.workbook import Workbook
 
 
 def _wb(rows, name="Sheet1"):

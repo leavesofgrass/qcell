@@ -1,12 +1,12 @@
 """Implicit / stiff solvers for first-order systems of ODEs.
 
-Companion to :mod:`qcell.core.ode` (explicit Euler / RK4 / RKF45) for problems
+Companion to :mod:`qcell.core.science.ode` (explicit Euler / RK4 / RKF45) for problems
 that are *stiff*: where the time-scale of the fastest-decaying mode is far
 smaller than the interval of interest, so an explicit method is forced to take
 absurdly tiny steps to stay stable. Implicit methods absorb this by solving a
 nonlinear system at every step instead of marching forward directly.
 
-Same contract as :mod:`qcell.core.ode`: the right-hand side
+Same contract as :mod:`qcell.core.science.ode`: the right-hand side
 ``f(t, y) -> list[float]`` maps a state vector ``y`` (always a ``list``, a
 scalar problem is a 1-element list) to its time-derivative; every solver returns
 ``(ts, ys)`` over ``n`` equal steps, ``ts`` with ``n + 1`` entries and ``ys`` the

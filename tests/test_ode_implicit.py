@@ -1,4 +1,4 @@
-"""Tests for :mod:`qcell.core.ode_implicit` (stiff / implicit ODE solvers)."""
+"""Tests for :mod:`qcell.core.science.ode_implicit` (stiff / implicit ODE solvers)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import math
 
 import pytest
 
-from qcell.core.ode_implicit import (
+from qcell.core.science.ode_implicit import (
     StiffODEError,
     _jacobian,
     _solve_linear,
