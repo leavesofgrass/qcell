@@ -442,7 +442,40 @@ class SettingsMixin:
         dock.raise_()
         return dock
 
+    def _require_code_consent(self, what: str = "This feature") -> bool:
+        """One-time consent gate before running untrusted code.
+
+        qcell's console, terminal, scripts, and macros execute arbitrary code with
+        the user's full privileges — there is no sandbox. Ask once, remember the
+        choice in settings, and otherwise abort the action. (A real sandbox is a
+        planned follow-up; this is the interim safeguard.)
+        """
+        if getattr(self._settings, "code_consent", False):
+            return True
+        from ._qtcompat import QMessageBox
+
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Warning)
+        box.setWindowTitle("Run untrusted code?")
+        box.setText(f"{what} runs arbitrary code with full access to your files, "
+                    "network, and system — qcell does not sandbox it.")
+        box.setInformativeText("Only continue if you trust the code you'll run. "
+                               "Enabling this is remembered for future sessions.")
+        enable = box.addButton("Enable code execution", QMessageBox.ButtonRole.AcceptRole)
+        cancel = box.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
+        box.setDefaultButton(cancel)
+        box.setEscapeButton(cancel)
+        box.exec()
+        if box.clickedButton() is enable:
+            self._settings.code_consent = True
+            self._set_status("code execution enabled for this profile")
+            return True
+        self._set_status("code execution stays disabled")
+        return False
+
     def show_terminal(self) -> None:
+        if not self._require_code_consent("The system terminal"):
+            return
         # Dockable panel. Prefer a true PTY terminal; fall back to the line terminal.
         from ._qtcompat import Qt
 
@@ -604,6 +637,8 @@ class SettingsMixin:
         self._set_status(f"number format: {spec}")
 
     def show_pyconsole(self) -> None:
+        if not self._require_code_consent("The Python console"):
+            return
         from ._qtcompat import Qt
         from .pyconsole import PyConsole
 
@@ -705,6 +740,8 @@ class SettingsMixin:
 
     def load_macros(self) -> None:
         """Load a macro/UDF .py file into the registry so it's immediately runnable."""
+        if not self._require_code_consent("Loading a macro / UDF file"):
+            return
         from ._qtcompat import QFileDialog, QMessageBox
 
         path, _ = QFileDialog.getOpenFileName(
@@ -724,7 +761,9 @@ class SettingsMixin:
         self._set_status(f"loaded macros from {path}")
 
     def run_script(self) -> None:
-        """Run an arbitrary Python script against the workbook (trusted, not sandboxed)."""
+        """Run an arbitrary Python script against the workbook (no sandbox)."""
+        if not self._require_code_consent("Running a Python script"):
+            return
         from ._qtcompat import QFileDialog, QMessageBox
 
         path, _ = QFileDialog.getOpenFileName(

@@ -8,11 +8,17 @@ and is never embedded in a JSON data file.
 
 See also: [index](index.md) · [architecture](architecture.md) · [licensing](licensing.md).
 
-> **Security — read this first.** Macros, the embedded Python console, and the
-> system terminal all run **arbitrary Python with your full user privileges**.
-> They are **not sandboxed**: a macro can read and write any file you can, open
-> network connections, and run shell commands. Only load and run code you
+> **Security — read this first.** Macros, the embedded Python console, the script
+> runner, and the system terminal all run **arbitrary code with your full user
+> privileges**. They are **not sandboxed**: code can read and write any file you
+> can, open network connections, and run shell commands. Only load and run code you
 > trust. Treat a downloaded macro the same way you would treat any executable.
+>
+> The GUI gates all of these behind a one-time **consent prompt**: the first time
+> you open the console/terminal or run a script/macro, qcell warns you and asks you
+> to explicitly *Enable code execution*. The choice is remembered per profile (the
+> `code_consent` setting); set it back to `false` to be asked again. (A real
+> sandbox is planned — this consent gate is the interim safeguard.)
 
 ## The two extension points
 

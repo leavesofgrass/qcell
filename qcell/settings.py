@@ -39,6 +39,7 @@ if _HAS_MSGSPEC:
         calc_degrees: bool = False
         last_sheet: int = 0
         last_cell: str = ""
+        code_consent: bool = False
         faceplate_assets_dir: str = ""
         faceplate_repo: str = ""
         open_default_panels: bool = True
@@ -77,6 +78,7 @@ else:
         calc_degrees: bool = False
         last_sheet: int = 0
         last_cell: str = ""
+        code_consent: bool = False
         faceplate_assets_dir: str = ""
         faceplate_repo: str = ""
         open_default_panels: bool = True
