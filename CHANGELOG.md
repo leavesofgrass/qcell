@@ -7,6 +7,14 @@ All notable changes to qcell are documented here. The format follows
 ## [Unreleased]
 
 ### Changed
+- **Menu reorganization** — with the RF/ham suite now sizeable, all of it moves out
+  of *Tools → Scientific* into a **dedicated top-level `Radio` menu** (RF toolkit,
+  Smith chart, antenna pattern, RF reference, I/Q → SVG, PyNEC solver); *Scientific*
+  keeps the general-math tools (matrix, solver, signal, ODE, ML). Charting is
+  consolidated under *Insert* (chart/graph + export-SVG, previously duplicated in
+  *Data → Analyze*), *Data → Analyze* is now purely data-science (stats, SQL,
+  profile, pandas, recode, pivot, goal-seek), the HTML-report export moves to *File*
+  and workbook-compare to *Data*. Command palette and shortcuts are unchanged.
 - **File manager: Worker-style button bank** — the dual-pane manager's toolbar is
   reorganized into Worker's two banks plus a utilities row. Row 1: **Home**, **F3
   View**, **F4 Edit**, **F5 Copy**, **F6 Move**, **F7 New dir**, **F8 Delete** (the

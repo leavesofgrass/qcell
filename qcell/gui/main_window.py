@@ -261,6 +261,7 @@ class MainWindow(NavigationMixin, DocumentMixin, DocumentIOMixin, SettingsMixin,
         m_file.addSeparator()
         self._act(m_file, "&Save", lambda: self.save_document(None), "Ctrl+S").setIcon(make_icon("save"))
         self._act(m_file, "Save &As...", self.save_document_as, "Ctrl+Shift+S")
+        self._act(m_file, "Export as &HTML report...", self.export_html_report)
         m_file.addSeparator()
         self._act(m_file, "&Quit", self.close, "Ctrl+Q")
 
@@ -330,6 +331,7 @@ class MainWindow(NavigationMixin, DocumentMixin, DocumentIOMixin, SettingsMixin,
         self._act(m_insert, "&Function...", self.show_formula_browser, "Shift+F3")
         self._act(m_insert, "&Equation...", self.show_equation).setIcon(make_icon("equation"))
         self._act(m_insert, "C&hart / graph...", self.show_graph).setIcon(make_icon("graph"))
+        self._act(m_insert, "Export chart as &SVG...", self.export_chart_svg)
 
         # --- Format (font - alignment - number - theme) -------------------
         m_format = mb.addMenu("F&ormat")
@@ -371,6 +373,7 @@ class MainWindow(NavigationMixin, DocumentMixin, DocumentIOMixin, SettingsMixin,
         self._act(m_data, "&Name range...", self.define_name)
         self._act(m_data, "Name &manager...", self.show_name_manager)
         self._act(m_data, "Data &validation...", self.show_validation_dialog)
+        self._act(m_data, "&Compare workbook...", self.compare_workbook)
         m_data.addSeparator()
         self._act(m_data, "&Recalculate", self._recalculate, "F9")
         m_data.addSeparator()
@@ -381,11 +384,8 @@ class MainWindow(NavigationMixin, DocumentMixin, DocumentIOMixin, SettingsMixin,
         self._act(m_analyze, "Open selection in &pandas...", self.show_dataframe)
         self._act(m_analyze, "&Recode / clean column...", self.show_recode)
         self._act(m_analyze, "Pi&vot / group-by...", self.show_pivot)
-        self._act(m_analyze, "&Graph / chart...", self.show_graph)
-        self._act(m_analyze, "&Export chart as SVG...", self.export_chart_svg)
+        m_analyze.addSeparator()
         self._act(m_analyze, "&Goal seek...", self.show_goal_seek)
-        self._act(m_analyze, "&Compare workbook...", self.compare_workbook)
-        self._act(m_analyze, "Export as &HTML report...", self.export_html_report)
 
         # --- Sheet (multi-sheet management) -------------------------------
         m_sheet = mb.addMenu("S&heet")
@@ -405,12 +405,6 @@ class MainWindow(NavigationMixin, DocumentMixin, DocumentIOMixin, SettingsMixin,
         self._act(m_sci, "Si&gnal / data tool...", self.show_signal_tool)
         self._act(m_sci, "&ODE solver...", self.show_ode_solver)
         self._act(m_sci, "M&L tool (PCA / k-means / regression)...", self.show_ml_tool)
-        self._act(m_sci, "&RF toolkit...", self.show_rf_tool)
-        self._act(m_sci, "Smith &chart...", self.show_smith_chart)
-        self._act(m_sci, "RF re&ference (bands / CTCSS)...", self.show_rf_reference)
-        self._act(m_sci, "&Antenna pattern...", self.show_antenna_pattern)
-        self._act(m_sci, "&I/Q constellation -> SVG", self.export_iq_svg)
-        self._act(m_sci, "Solve &NEC deck (PyNEC)...", self.solve_nec_pynec)
         m_tools.addSeparator()
         self._act(m_tools, "Install optional features now", self.install_optional_features)
         self._act(m_tools, "&Budget wizard...", self.show_budget_wizard)
@@ -429,6 +423,16 @@ class MainWindow(NavigationMixin, DocumentMixin, DocumentIOMixin, SettingsMixin,
         m_face = m_tools.addMenu("Calculator &faceplates")
         self._act(m_face, "Set image folder...", self.set_faceplate_folder)
         self._act(m_tools, "Copy selection as &Markdown", self._copy_as_markdown)
+
+        # --- Radio (ham / RF suite) ---------------------------------------
+        m_radio = mb.addMenu("&Radio")
+        self._act(m_radio, "&RF toolkit...", self.show_rf_tool)
+        self._act(m_radio, "Smith &chart...", self.show_smith_chart)
+        self._act(m_radio, "&Antenna pattern...", self.show_antenna_pattern)
+        m_radio.addSeparator()
+        self._act(m_radio, "RF re&ference (bands / CTCSS)...", self.show_rf_reference)
+        self._act(m_radio, "&I/Q constellation -> SVG", self.export_iq_svg)
+        self._act(m_radio, "Solve &NEC deck (PyNEC)...", self.solve_nec_pynec)
 
         # --- Help ---------------------------------------------------------
         m_help = mb.addMenu("&Help")
