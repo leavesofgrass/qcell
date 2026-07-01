@@ -87,6 +87,18 @@ class NameRegistry:
     def __init__(self) -> None:
         # upper(name) -> (display_name, target)
         self._by_upper: dict[str, tuple[str, str]] = {}
+        # Bumped on every mutation, so callers that cache name-resolved formulas
+        # (see Sheet.get_value) can invalidate cheaply instead of re-resolving on
+        # every evaluation.
+        self._version = 0
+
+    @property
+    def version(self) -> int:
+        """A counter bumped on every mutation (define/rename/remove)."""
+        return self._version
+
+    def __len__(self) -> int:
+        return len(self._by_upper)
 
     def define(self, name: str, target: str) -> None:
         """Define (or overwrite) *name* with *target*.
@@ -97,6 +109,7 @@ class NameRegistry:
             raise NameError(f"invalid name: {name!r}")
         normalized = normalize_target(target)
         self._by_upper[name.upper()] = (name, normalized)
+        self._version += 1
 
     def lookup(self, name: str) -> str | None:
         """Return the target for *name* (case-insensitive), or ``None``."""
@@ -123,6 +136,7 @@ class NameRegistry:
             raise NameError(f"name already defined: {new!r}")
         _display, target = self._by_upper.pop(old_key)
         self._by_upper[new_key] = (new, target)
+        self._version += 1
 
     def remove(self, name: str) -> None:
         """Remove *name*. Raises :class:`NameError` if it is missing."""
@@ -130,6 +144,7 @@ class NameRegistry:
         if key not in self._by_upper:
             raise NameError(f"name not defined: {name!r}")
         del self._by_upper[key]
+        self._version += 1
 
     def names(self) -> list[tuple[str, str]]:
         """Return ``[(display_name, target)]`` sorted by name (case-insensitive)."""

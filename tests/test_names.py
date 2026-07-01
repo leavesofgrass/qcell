@@ -192,6 +192,31 @@ def test_to_dict_from_dict_round_trip():
     assert reg2.to_dict() == d
 
 
+# --- version / len (resolved-AST cache invalidation) -----------------------
+
+
+def test_version_bumps_on_mutation():
+    reg = NameRegistry()
+    v0 = reg.version
+    reg.define("Sales", "A1:A10")
+    v1 = reg.version
+    assert v1 > v0
+    reg.rename("Sales", "Revenue")
+    v2 = reg.version
+    assert v2 > v1
+    reg.remove("Revenue")
+    assert reg.version > v2
+
+
+def test_len_and_truthiness():
+    reg = NameRegistry()
+    assert len(reg) == 0
+    assert not reg
+    reg.define("Sales", "A1:A10")
+    assert len(reg) == 1
+    assert reg
+
+
 def test_from_dict_skips_invalid_entries():
     reg = NameRegistry.from_dict(
         {

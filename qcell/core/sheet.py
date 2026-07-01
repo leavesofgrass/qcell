@@ -36,6 +36,10 @@ class Sheet:
         self.validations: list = []
         self._cells: dict[tuple[int, int], Cell] = {}
         self._ast_cache: dict[tuple[int, int], Any] = {}
+        # Name-resolved AST cache: key -> (names_version, resolved_ast). Resolving
+        # defined names rewrites the whole tree, so we memoize the result and only
+        # redo it when the cell's formula or the name registry actually changes.
+        self._rast_cache: dict[tuple[int, int], tuple[int, Any]] = {}
         self._value_cache: dict[tuple[int, int], Any] = {}
         self._computing: set[tuple[int, int]] = set()
 
@@ -53,6 +57,7 @@ class Sheet:
         else:
             self._cells[key] = Cell(raw)
         self._ast_cache.pop(key, None)
+        self._rast_cache.pop(key, None)
         # An edit can change any dependent's value. Within a workbook, dependents
         # may live on *other* sheets (cross-sheet refs), so clear every sheet's
         # cache; standalone sheets just clear their own.
@@ -75,6 +80,7 @@ class Sheet:
             else:
                 cells[(row, col)] = Cell(raw)
         self._ast_cache.clear()
+        self._rast_cache.clear()
         if self.workbook is not None:
             self.workbook.invalidate_caches()
         else:
@@ -173,6 +179,7 @@ class Sheet:
                     if new_raw != cell.raw:
                         sh._cells[key] = Cell(new_raw)
             sh._ast_cache.clear()
+            sh._rast_cache.clear()
             sh._value_cache.clear()
 
     # --- reading ----------------------------------------------------------
@@ -215,8 +222,16 @@ class Sheet:
                 ast = parse(cell.formula)
                 self._ast_cache[key] = ast
             names = getattr(self.workbook, "names", None)
-            if names is not None and names.names():
-                ast = _resolve_names(ast, names)
+            if names:  # O(1) — empty/absent registry skips name resolution
+                # Name resolution rewrites the whole AST; memoize the result and
+                # only redo it when the formula or the name registry changes.
+                ver = names.version
+                cached = self._rast_cache.get(key)
+                if cached is not None and cached[0] == ver:
+                    ast = cached[1]
+                else:
+                    ast = _resolve_names(ast, names)
+                    self._rast_cache[key] = (ver, ast)
             val = evaluate(ast, self._resolve)
         except FormulaError:
             val = CellError(CellError.NAME)
