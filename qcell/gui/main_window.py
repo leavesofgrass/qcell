@@ -382,6 +382,9 @@ class MainWindow(NavigationMixin, DocumentMixin, DocumentIOMixin, SettingsMixin,
         self._act(m_analyze, "Pi&vot / group-by...", self.show_pivot)
         self._act(m_analyze, "&Graph / chart...", self.show_graph)
         self._act(m_analyze, "&Export chart as SVG...", self.export_chart_svg)
+        self._act(m_analyze, "&Goal seek...", self.show_goal_seek)
+        self._act(m_analyze, "&Compare workbook...", self.compare_workbook)
+        self._act(m_analyze, "Export as &HTML report...", self.export_html_report)
 
         # --- Sheet (multi-sheet management) -------------------------------
         m_sheet = mb.addMenu("S&heet")
@@ -404,6 +407,7 @@ class MainWindow(NavigationMixin, DocumentMixin, DocumentIOMixin, SettingsMixin,
         self._act(m_sci, "&RF toolkit...", self.show_rf_tool)
         self._act(m_sci, "Smith &chart...", self.show_smith_chart)
         self._act(m_sci, "&Antenna pattern...", self.show_antenna_pattern)
+        self._act(m_sci, "&I/Q constellation -> SVG", self.export_iq_svg)
         m_tools.addSeparator()
         self._act(m_tools, "Install optional features now", self.install_optional_features)
         self._act(m_tools, "&Budget wizard...", self.show_budget_wizard)

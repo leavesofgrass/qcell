@@ -132,11 +132,11 @@ def build_namespace(workbook, refresh=None) -> dict:
 
         return profile.profile_sheet(workbook.sheet)
 
-    from . import profile, sqlsheets
+    from . import goalseek, profile, sqlsheets, wbdiff
     from .calc import algebraic, ti_engine
     from .calc.rpn import RPN
     from .graphing import compile_expr
-    from .io import adif_io
+    from .io import adif_io, html_report
     from .science import (
         antenna,
         antenna_impedance,
@@ -151,6 +151,7 @@ def build_namespace(workbook, refresh=None) -> dict:
         financial,
         gmm,
         interp,
+        iq,
         matrix,
         metrics,
         ml,
@@ -197,6 +198,7 @@ def build_namespace(workbook, refresh=None) -> dict:
         "nec": nec,
         "sql": sql, "sqlsheets": sqlsheets, "profile": profile,
         "describe": describe, "chartsvg": chartsvg, "dxcc": dxcc, "adif": adif_io,
+        "goalseek": goalseek, "iq": iq, "wbdiff": wbdiff, "html_report": html_report,
         "algebraic": algebraic, "ti_engine": ti_engine,
         "np": _np, "numpy": _np, "pd": _pd, "pandas": _pd, "scipy": _scipy,
         "sm": _sm, "statsmodels": _sm, "sklearn": _sklearn,

@@ -107,6 +107,87 @@ class ToolsMixin:
 
         SqlDialog(self).exec()
 
+    def show_goal_seek(self) -> None:
+        from .dialogs.goalseek_dialog import GoalSeekDialog
+
+        GoalSeekDialog(self).exec()
+
+    def export_iq_svg(self) -> None:
+        """Read a 2-column (I, Q) selection and export the constellation as SVG."""
+        from pathlib import Path
+
+        from ._qtcompat import QFileDialog
+        from ..core.science import chartsvg, iq
+
+        r1, c1, r2, c2 = self._selected_bounds()
+        sheet = self._doc.workbook.sheet
+        samples = []
+        for r in range(r1, r2 + 1):
+            i = sheet.get_value(r, c1)
+            q = sheet.get_value(r, c1 + 1) if c2 > c1 else 0
+            if isinstance(i, (int, float)) and not isinstance(i, bool):
+                qv = float(q) if isinstance(q, (int, float)) and not isinstance(q, bool) else 0.0
+                samples.append(complex(float(i), qv))
+        if not samples:
+            self._set_status("select I (and Q) columns of numbers")
+            return
+        svg = chartsvg.scatter_svg(iq.constellation_points(samples), title="I/Q constellation")
+        path, _ = QFileDialog.getSaveFileName(self, "Export constellation SVG",
+                                              "constellation.svg", "SVG image (*.svg)")
+        if not path:
+            return
+        Path(path).write_text(svg, encoding="utf-8")
+        self._set_status(f"{len(samples)} symbols, {iq.power_dbfs(samples):.1f} dBFS "
+                         f"-> {Path(path).name}")
+
+    def compare_workbook(self) -> None:
+        """Diff the current workbook against another file into a new 'Diff' sheet."""
+        from ._qtcompat import QFileDialog
+        from ..core import wbdiff
+        from ..engine.document import Document
+
+        path, _ = QFileDialog.getOpenFileName(self, "Compare with workbook", "")
+        if not path:
+            return
+        try:
+            other = Document.open(path)
+        except Exception as exc:  # noqa: BLE001
+            from ._qtcompat import QMessageBox
+            QMessageBox.warning(self, "Compare", str(exc))
+            return
+        diff = wbdiff.diff_workbooks(self._doc.workbook, other.workbook)
+        wb = self._doc.workbook
+        rep = wb.add_sheet(self._unique_sheet_name("Diff"))
+        rep.set_cell(0, 0, wbdiff.summary(diff))
+        headers = ["sheet", "row", "col", "kind", "this", "other"]
+        for c, h in enumerate(headers):
+            rep.set_cell(2, c, h)
+        row = 3
+        for sname, changes in diff["sheets"].items():
+            for ch in changes:
+                for c, v in enumerate([sname, ch["row"] + 1, ch["col"] + 1,
+                                       ch["kind"], ch["a"], ch["b"]]):
+                    rep.set_cell(row, c, str(v))
+                row += 1
+        wb.active = len(wb.sheets) - 1
+        self._doc.mark_dirty()
+        self.refresh_table()
+        self._set_status("compared: " + wbdiff.summary(diff))
+
+    def export_html_report(self) -> None:
+        from pathlib import Path
+
+        from ._qtcompat import QFileDialog
+        from ..core.io import html_report
+
+        path, _ = QFileDialog.getSaveFileName(self, "Export as HTML report",
+                                              "report.html", "HTML (*.html *.htm)")
+        if not path:
+            return
+        Path(path).write_text(html_report.workbook_to_html(self._doc.workbook),
+                              encoding="utf-8")
+        self._set_status(f"saved HTML report: {Path(path).name}")
+
     def _unique_sheet_name(self, base: str) -> str:
         existing = {s.name for s in self._doc.workbook.sheets}
         if base not in existing:
