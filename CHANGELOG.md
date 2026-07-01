@@ -7,6 +7,12 @@ All notable changes to qcell are documented here. The format follows
 ## [Unreleased]
 
 ### Changed
+- **Formula-engine hot-path optimizations** — `RangeValue.flat()` memoizes its single
+  materialization (a range flattened more than once in a formula — SUMPRODUCT, AND/OR,
+  COUNTIF — is ~50× cheaper on the repeats); `Sheet.used_bounds()` (called on every
+  grid refresh/export/render) walks the cell dict once instead of twice; and
+  `CORREL`/`SLOPE`/`SUMPRODUCT` coerce each value once instead of repeatedly. No
+  behaviour change.
 - **Optional dependencies: a first-run chooser, then on-demand install** — a new
   `qcell/autodeps.py` installs optional packages (the data-science stack,
   Excel/Parquet I/O, the PTY terminal, Jupyter integration) in a best-effort
@@ -45,6 +51,21 @@ All notable changes to qcell are documented here. The format follows
   speed.
 
 ### Added
+- **SQL over sheets** (*Data → Analyze → SQL query*) — run SQL against the workbook:
+  each sheet becomes an in-memory SQLite table (first row = headers, types inferred),
+  so `SELECT` / `JOIN` / `GROUP BY` work across sheets; results view in a grid and
+  drop into a new sheet. Console `sql(query)`. Pure-stdlib `core/sqlsheets.py`.
+- **Column profiler** (*Data → Analyze → Profile columns*) — a per-column report
+  (dtype, count, missing, unique, and numeric min/max/mean/median/std) written to a
+  new sheet. Console `describe()`. Pure-stdlib `core/profile.py`.
+- **SVG charts** (*Data → Analyze → Export chart as SVG*) — pure-Python line / bar /
+  scatter / histogram charts with axes and legend (`core/science/chartsvg.py`);
+  export the selection or use `chartsvg` in the console.
+- **ADIF ham logbook** — open and save `.adi`/`.adif` amateur-radio logs
+  (`core/io/adif_io.py`), so File → Open / Save As round-trip a logbook through a sheet.
+- **DXCC callsign lookup** — a `DXCC(callsign)` formula function (e.g. `=DXCC("W1AW")`
+  → `United States`) backed by a 378-prefix table (`core/science/dxcc.py`); handles
+  portable prefixes and operational suffixes.
 - **Budgeting tools** (*Tools → Budget wizard*) — a guided dialog to set up and
   track expenses: enter monthly income, seed categories from the **50/30/20 rule**
   (or start blank), tweak the amounts, and *Create budget sheet*. It drops a **live
