@@ -30,7 +30,11 @@ def win(app):
     for r, (n, a) in enumerate([("al", "30"), ("bo", "40"), ("cy", "20")], start=1):
         s.set_cell(r, 0, n)
         s.set_cell(r, 1, a)
-    return w
+    yield w
+    from abax.gui._qtcompat import QEvent
+    w.deleteLater()
+    app.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    app.processEvents()
 
 
 def test_sql_dialog_runs_and_writes_sheet(win):

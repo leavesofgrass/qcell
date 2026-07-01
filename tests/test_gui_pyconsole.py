@@ -22,9 +22,15 @@ def app():
 
 @pytest.fixture()
 def win(app):
+    from abax.gui._qtcompat import QEvent
     from abax.gui.main_window import MainWindow
 
-    return MainWindow(Settings(code_consent=True))     # past the consent gate
+    _win = MainWindow(Settings(code_consent=True))     # past the consent gate
+    yield _win
+    _win.close()   # stop the console worker/subprocess before disposal
+    _win.deleteLater()
+    app.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    app.processEvents()
 
 
 def _wait(console, app, timeout_ms: int = 10000) -> None:

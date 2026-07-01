@@ -35,7 +35,14 @@ def app():
 def win(app):
     from abax.gui.main_window import MainWindow
 
-    return MainWindow(Settings())
+    _win = MainWindow(Settings())
+    yield _win
+    # Dispose the window so it doesn't accumulate across a long test process
+    # (many live MainWindows segfault Qt when a later test restyles them).
+    from abax.gui._qtcompat import QEvent as _QEvent
+    _win.deleteLater()
+    app.sendPostedEvents(None, _QEvent.Type.DeferredDelete)
+    app.processEvents()
 
 
 def _press(view, key, mods=Qt.KeyboardModifier.NoModifier, text=""):

@@ -10,6 +10,13 @@ install:
 test *args:
     {{python}} -m pytest {{args}}
 
+# Parallel run across all cores (pytest-xdist, in the dev extra). The GUI tests
+# now dispose their windows (conftest + per-fixture teardown), so nothing
+# accumulates and the whole suite is safe under -n auto — the ~40-min
+# single-threaded suite finishes in a few minutes.
+test-fast *args:
+    {{python}} -m pytest -n auto {{args}}
+
 lint:
     {{python}} -m ruff check {{pkg}}/
 
