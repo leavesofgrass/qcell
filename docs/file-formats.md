@@ -54,7 +54,7 @@ abax's own format is a self-describing JSON **envelope** produced by
 ```json
 {
   "app": "abax",
-  "schema_version": 3,
+  "schema_version": 1,
   "written_at": "2026-06-29T12:00:00+00:00",
   "data": {
     "active": 0,

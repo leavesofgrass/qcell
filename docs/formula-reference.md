@@ -52,8 +52,12 @@ function calls.
 | `>` | greater than | `=2>1` | `TRUE` |
 | `<=` | less or equal | `=2<=2` | `TRUE` |
 | `>=` | greater or equal | `=3>=4` | `FALSE` |
+| `#` | spill range (postfix on an anchor) | `=SUM(A1#)` | sum of A1's spill |
+| `@` | implicit intersection (prefix) | `=@A1:A10` | the row-aligned cell |
 
 `^` is **right-associative**, so `2^3^2` is `2^(3^2)` = `512`, not `64`.
+Arithmetic and comparison operators **broadcast** over ranges/arrays (see
+[Dynamic arrays and spill](#dynamic-arrays-and-spill)).
 
 ### Literals and values
 
@@ -85,10 +89,10 @@ trapped by `IFERROR` / `IFNA` / `ISERROR`.
 
 Function names are case-insensitive. Below, every built-in is grouped by
 family with its signature, a one-line description, and an example. Optional
-arguments are shown in `[brackets]`. There are **over 400 built-in functions** —
-**405 eager** (counting aliases and modern dotted names), **6 lazy** control-flow
+arguments are shown in `[brackets]`. There are **over 550 built-in functions** —
+**562 eager** (counting aliases and modern dotted names), **6 lazy** control-flow
 functions, and **7 reference/context** functions (`ROW`, `OFFSET`, `INDIRECT`, …)
-— **418 names** in all; user macros can add more (see the
+— **575 names** in all; user macros can add more (see the
 [UDFs](#user-defined-functions-udfs) note).
 
 Coverage spans the everyday Excel / Gnumeric set: math and trigonometry
@@ -126,6 +130,8 @@ SUM/AVERAGE rules; booleans count as `1`/`0`).
 | `SMALL` | k-th smallest value | `SMALL(range, k)` | `=SMALL({3,1,2},1)` | `1` |
 | `RANK` | Rank of a value (order: 0=desc, 1=asc) | `RANK(value, range, [order])` | `=RANK(2,{1,2,3},0)` | `2` |
 | `SUMPRODUCT` | Sum of element-wise products | `SUMPRODUCT(range, range, ...)` | `=SUMPRODUCT(A1:A3,B1:B3)` | dot product |
+| `SUBTOTAL` | Aggregate by function number 1–11 (AVERAGE…VARP; 101–111 accepted) | `SUBTOTAL(function_num, ref, ...)` | `=SUBTOTAL(9,A1:A4)` | sum of range |
+| `AGGREGATE` | Like `SUBTOTAL` plus 12–19 (MEDIAN…QUARTILE.EXC); options 2/3/6/7 ignore errors in the data | `AGGREGATE(function_num, options, ref, [k])` | `=AGGREGATE(14,6,A1:A5,2)` | 2nd largest, errors skipped |
 
 ### Conditional aggregate
 
@@ -186,6 +192,8 @@ match a row only when **every** pair matches (logical AND across pairs).
 | `QUOTIENT` | Integer part of a division | `QUOTIENT(num, div)` | `=QUOTIENT(7,2)` | `3` |
 | `SQRTPI` | Square root of `num * π` | `SQRTPI(num)` | `=SQRTPI(1)` | `1.7725` |
 | `ISO.CEILING` | Ceiling to a multiple (ISO) | `ISO.CEILING(num, [sig])` | `=ISO.CEILING(4.3)` | `5` |
+| `CEILING.MATH` | Ceiling to a multiple; `mode` sends negatives away from zero | `CEILING.MATH(num, [sig], [mode])` | `=CEILING.MATH(24.3,5)` | `25` |
+| `FLOOR.MATH` | Floor to a multiple; `mode` sends negatives toward zero | `FLOOR.MATH(num, [sig], [mode])` | `=FLOOR.MATH(-8.1,2)` | `-10` |
 | `GAMMA` | Gamma function Γ(x) | `GAMMA(num)` | `=GAMMA(5)` | `24` |
 | `GAMMALN` | Natural log of Γ(x) | `GAMMALN(num)` | `=GAMMALN(5)` | `3.178` |
 
@@ -276,6 +284,35 @@ and lightweight regression / distribution helpers.
 | `FISHERINV` | Inverse Fisher `tanh(y)` | `FISHERINV(y)` | `=FISHERINV(0.973)` | `0.75` |
 | `RANK.EQ` | Rank (ties share the top rank) | `RANK.EQ(value, range, [order])` | `=RANK.EQ(2,A1:A9)` | rank |
 | `RANK.AVG` | Rank (ties share the average rank) | `RANK.AVG(value, range, [order])` | `=RANK.AVG(2,A1:A9)` | rank |
+| `MAXA` · `MINA` | Max / min, counting text as 0, TRUE as 1 | `MAXA(value, ...)` | `=MAXA(1,"x",TRUE)` | `1` |
+| `VARA` · `VARPA` | Sample / population variance, text as 0 | `VARA(value, ...)` | `=VARPA(1,2,3)` | `0.667` |
+| `STDEVA` · `STDEVPA` | Sample / population std dev, text as 0 | `STDEVA(value, ...)` | `=STDEVA(1,2,3,4)` | `1.291` |
+| `SKEWP` | Population skewness | `SKEWP(value, ...)` | `=SKEWP(A1:A9)` | skewness |
+| `KURTP` | Population (excess) kurtosis | `KURTP(value, ...)` | `=KURTP(A1:A9)` | kurtosis |
+| `RANGE` | Spread `max − min` of the values | `RANGE(value, ...)` | `=RANGE(2,4,9)` | `7` |
+| `COVARIANCE.S` | Sample covariance of two ranges | `COVARIANCE.S(range1, range2)` | `=COVARIANCE.S(A1:A9,B1:B9)` | covariance |
+| `COVARIANCE.P` | Population covariance (= `COVAR`) | `COVARIANCE.P(range1, range2)` | `=COVARIANCE.P(A1:A9,B1:B9)` | covariance |
+| `MODE.SNGL` | Single most frequent value (= `MODE`) | `MODE.SNGL(value, ...)` | `=MODE.SNGL(1,2,2,3)` | `2` |
+| `PROB` | Total probability where x is in a range | `PROB(x_range, prob_range, lower, [upper])` | `=PROB(A1:A4,B1:B4,2,3)` | probability |
+| `PERCENTILE.EXC` | k-th percentile, *exclusive* | `PERCENTILE.EXC(range, k)` | `=PERCENTILE.EXC(A1:A4,0.25)` | exclusive pct |
+| `QUARTILE.EXC` | Quartile, exclusive | `QUARTILE.EXC(range, q)` | `=QUARTILE.EXC(A1:A4,1)` | exclusive Q1 |
+| `PERCENTRANK.EXC` | Percent rank, exclusive | `PERCENTRANK.EXC(range, x)` | `=PERCENTRANK.EXC(A1:A4,2)` | `0`…`1` |
+
+**Array-returning (spilling) statistics.** These produce an array and
+[spill](#dynamic-arrays-and-spill) from their anchor cell:
+
+| Function | Description | Signature | Example | Result |
+|---|---|---|---|---|
+| `FREQUENCY` | Counts of `data` falling in each bin | `FREQUENCY(data, bins)` | `=FREQUENCY(A1:A20,B1:B4)` | column of counts |
+| `MODE.MULT` | Every value tied for most frequent | `MODE.MULT(range)` | `=MODE.MULT(A1:A9)` | column of modes |
+| `TREND` | Linear fit predictions | `TREND(known_ys, [known_xs], [new_xs])` | `=TREND(B1:B9,A1:A9,A10:A12)` | predicted ys |
+| `GROWTH` | Exponential fit predictions | `GROWTH(known_ys, [known_xs], [new_xs])` | `=GROWTH(B1:B9,A1:A9)` | predicted ys |
+| `LINEST` | Least-squares coefficients (multiple regression) | `LINEST(known_ys, [known_xs])` | `=LINEST(C1:C9,A1:B9)` | `[b_k … b_1, intercept]` |
+| `LOGEST` | Exponential fit `y = b·m1^x1·…` | `LOGEST(known_ys, [known_xs])` | `=LOGEST(C1:C9,A1:B9)` | `[m_k … m_1, b]` |
+
+`LINEST`/`LOGEST` accept **multiple predictor columns** and return the
+coefficients right-to-left (Excel order), intercept last. `TREND`/`GROWTH`
+remain single-predictor.
 
 ### Statistical distributions
 
@@ -314,6 +351,114 @@ legacy names and the modern dotted names (e.g. `BINOM.DIST`) are registered.
 | `PHI` | Standard normal PDF | `PHI(x)` | `=PHI(0)` | `0.3989` |
 | `GAUSS` | `Φ(z) − 0.5` | `GAUSS(z)` | `=GAUSS(2)` | `0.4772` |
 
+**R-style distribution family (Gnumeric-compatible).** For users who think in
+R's naming, every common distribution is also available as a density
+(`R.D…`), a lower-tail cumulative (`R.P…`) and a quantile / inverse (`R.Q…`).
+All three share the value/parameter order below (the `D`/`P`/`Q` prefix only
+swaps density ↔ cumulative ↔ quantile). Example: `=R.QNORM(0.975,0,1)` → `1.96`;
+`=R.PT(0,5)` → `0.5`; `=R.PGUMBEL(0,0,1)` → `0.3679`. Parameters shown in
+`[brackets]` are optional with the noted default.
+
+**Continuous** — call as `R.D…(x, …)`, `R.P…(x, …)`, `R.Q…(p, …)`:
+
+| Distribution | Trio | Parameters (after `x`/`p`) |
+|---|---|---|
+| Normal | `R.DNORM` `R.PNORM` `R.QNORM` | `[mean=0]`, `[sd=1]` |
+| Skew-normal | `R.DSNORM` `R.PSNORM` `R.QSNORM` | `[loc=0]`, `[scale=1]`, `[shape=0]` |
+| Log-normal | `R.DLNORM` `R.PLNORM` `R.QLNORM` | `[meanlog=0]`, `[sdlog=1]` |
+| Exponential | `R.DEXP` `R.PEXP` `R.QEXP` | `[rate=1]` |
+| Gamma | `R.DGAMMA` `R.PGAMMA` `R.QGAMMA` | `shape`, `[scale=1]` |
+| Beta | `R.DBETA` `R.PBETA` `R.QBETA` | `a`, `b` |
+| Weibull | `R.DWEIBULL` `R.PWEIBULL` `R.QWEIBULL` | `shape`, `[scale=1]` |
+| Chi-square | `R.DCHISQ` `R.PCHISQ` `R.QCHISQ` | `df` |
+| Student-t | `R.DT` `R.PT` `R.QT` | `df` |
+| F | `R.DF` `R.PF` `R.QF` | `df1`, `df2` |
+| Uniform | `R.DUNIF` `R.PUNIF` `R.QUNIF` | `[min=0]`, `[max=1]` |
+| Cauchy | `R.DCAUCHY` `R.PCAUCHY` `R.QCAUCHY` | `[loc=0]`, `[scale=1]` |
+| Gumbel | `R.DGUMBEL` `R.PGUMBEL` `R.QGUMBEL` | `[loc=0]`, `[scale=1]` |
+| Laplace | `R.DLAPLACE` `R.PLAPLACE` `R.QLAPLACE` | `[loc=0]`, `[scale=1]` |
+| Logistic | `R.DLOGIS` `R.PLOGIS` `R.QLOGIS` | `[loc=0]`, `[scale=1]` |
+| Rayleigh | `R.DRAYLEIGH` `R.PRAYLEIGH` `R.QRAYLEIGH` | `[scale=1]` |
+| Pareto | `R.DPARETO` `R.PPARETO` `R.QPARETO` | `scale` (minimum), `shape` |
+
+**Discrete** — `R.D…` is the PMF, `R.P…` the CDF, `R.Q…` the quantile:
+
+| Distribution | Trio | Parameters (after `k`/`p`) |
+|---|---|---|
+| Binomial | `R.DBINOM` `R.PBINOM` `R.QBINOM` | `size`, `prob` |
+| Poisson | `R.DPOIS` `R.PPOIS` `R.QPOIS` | `lambda` |
+| Geometric | `R.DGEOM` `R.PGEOM` `R.QGEOM` | `prob` |
+| Negative binomial | `R.DNBINOM` `R.PNBINOM` `R.QNBINOM` | `size`, `prob` |
+| Hypergeometric | `R.DHYPER` `R.PHYPER` `R.QHYPER` | `m` (successes), `n` (failures), `k` (draws) |
+
+**Modern dotted family (left-tail / density forms).** The legacy `TDIST` /
+`FDIST` / `CHIDIST` names are Excel's *right-tail* probabilities; these are the
+modern left-tail/density halves and their inverses, plus the hypothesis tests:
+
+| Function | Description | Signature | Example | Result |
+|---|---|---|---|---|
+| `NORM.S.DIST` | Standard normal CDF or density | `NORM.S.DIST(z, cumulative)` | `=NORM.S.DIST(1.333333,TRUE)` | `0.9088` |
+| `T.DIST` | Student-t left-tail CDF or density | `T.DIST(x, df, cumulative)` | `=T.DIST(60,1,TRUE)` | `0.9947` |
+| `T.DIST.RT` | Student-t right tail | `T.DIST.RT(x, df)` | `=T.DIST.RT(1.96,60)` | `0.0273` |
+| `T.DIST.2T` | Student-t two-tailed | `T.DIST.2T(x, df)` | `=T.DIST.2T(1.96,60)` | `0.0546` |
+| `T.INV` | Left-tail t inverse | `T.INV(p, df)` | `=T.INV(0.75,2)` | `0.8165` |
+| `T.INV.2T` | Two-tailed t inverse (= `TINV`) | `T.INV.2T(p, df)` | `=T.INV.2T(0.546449,60)` | `0.6065` |
+| `CHISQ.DIST` | χ² left-tail CDF or density | `CHISQ.DIST(x, df, cumulative)` | `=CHISQ.DIST(0.5,1,TRUE)` | `0.5205` |
+| `CHISQ.INV` | Left-tail χ² inverse | `CHISQ.INV(p, df)` | `=CHISQ.INV(0.93,1)` | `3.2830` |
+| `F.DIST` | F left-tail CDF or density | `F.DIST(x, df1, df2, cumulative)` | `=F.DIST(15.207,6,4,TRUE)` | `0.99` |
+| `F.INV` | Left-tail F inverse | `F.INV(p, df1, df2)` | `=F.INV(0.01,6,4)` | `0.1093` |
+| `CONFIDENCE.T` | t-based confidence half-width | `CONFIDENCE.T(alpha, sd, n)` | `=CONFIDENCE.T(0.05,1,50)` | `0.2842` |
+| `T.TEST` | t-test p-value (tails 1/2; type 1 paired, 2 pooled, 3 Welch) | `T.TEST(array1, array2, tails, type)` | `=T.TEST(A1:A9,B1:B9,2,1)` | p-value |
+| `Z.TEST` | One-tailed z-test (alias `ZTEST`) | `Z.TEST(array, x, [sigma])` | `=Z.TEST(A1:A10,4)` | `0.0906` |
+| `F.TEST` | Two-tailed variance-equality test (alias `FTEST`) | `F.TEST(array1, array2)` | `=F.TEST(A1:A5,B1:B5)` | p-value |
+| `CHISQ.TEST` | Independence-test p-value (alias `CHITEST`) | `CHISQ.TEST(actual, expected)` | `=CHISQ.TEST(A1:B3,D1:E3)` | p-value |
+
+**Modern dotted aliases.** Excel's newer `.` names are registered as exact
+aliases of their legacy equivalents (same arguments and results):
+
+| Dotted name | Legacy equivalent |
+|---|---|
+| `STDEV.S` · `STDEV.P` | `STDEV` · `STDEVP` |
+| `VAR.S` · `VAR.P` | `VAR` · `VARP` |
+| `NORM.DIST` · `NORM.INV` | `NORMDIST` · `NORMINV` |
+| `NORM.S.INV` | `NORMSINV` |
+| `PERCENTILE.INC` · `QUARTILE.INC` | `PERCENTILE` · `QUARTILE` |
+| `PERCENTRANK.INC` | `PERCENTRANK` |
+| `MODE.SNGL` | `MODE` |
+| `COVARIANCE.P` | `COVAR` |
+| `CONFIDENCE.NORM` | `CONFIDENCE` |
+| `CHISQ.DIST.RT` · `CHISQ.INV.RT` | `CHIDIST` · `CHIINV` |
+| `F.DIST.RT` · `F.INV.RT` | `FDIST` · `FINV` |
+| `BINOM.DIST` · `BINOM.INV` | `BINOMDIST` · `CRITBINOM` |
+| `POISSON.DIST` · `EXPON.DIST` | `POISSON` · `EXPONDIST` |
+| `GAMMA.DIST` · `GAMMA.INV` | `GAMMADIST` · `GAMMAINV` |
+| `BETA.DIST` · `BETA.INV` | `BETADIST` · `BETAINV` |
+| `WEIBULL.DIST` | `WEIBULL` |
+| `LOGNORM.DIST` · `LOGNORM.INV` | `LOGNORMDIST` · `LOGINV` |
+| `NEGBINOM.DIST` · `HYPGEOM.DIST` | `NEGBINOMDIST` · `HYPGEOMDIST` |
+| `ERF.PRECISE` · `ERFC.PRECISE` | `ERF` · `ERFC` |
+| `FORECAST.LINEAR` | `FORECAST` |
+| `SKEW.P` | `SKEWP` |
+| `GAMMALN.PRECISE` | `GAMMALN` |
+
+### Special math and number theory
+
+Gnumeric-parity functions the standard set lacks.
+
+| Function | Description | Signature | Example | Result |
+|---|---|---|---|---|
+| `BETA` | Beta function `B(a,b)` | `BETA(a, b)` | `=BETA(2,3)` | `0.0833` |
+| `BETALN` | Natural log of `B(a,b)` | `BETALN(a, b)` | `=BETALN(2,3)` | `-2.485` |
+| `POCHHAMMER` | Rising factorial `(x)_n` | `POCHHAMMER(x, n)` | `=POCHHAMMER(5,3)` | `210` |
+| `GD` | Gudermannian, `2·atan(tanh(x/2))` | `GD(x)` | `=GD(1)` | `0.8657` |
+| `ITHPRIME` | The n-th prime | `ITHPRIME(n)` | `=ITHPRIME(10)` | `29` |
+| `ISPRIME` | Is n prime? | `ISPRIME(n)` | `=ISPRIME(97)` | `TRUE` |
+| `NT_PI` | Prime-counting function π(n) | `NT_PI(n)` | `=NT_PI(10)` | `4` |
+| `NT_D` | Number of divisors of n | `NT_D(n)` | `=NT_D(12)` | `6` |
+| `NT_SIGMA` | Sum of divisors of n | `NT_SIGMA(n)` | `=NT_SIGMA(12)` | `28` |
+| `NT_PHI` | Euler totient φ(n) | `NT_PHI(n)` | `=NT_PHI(12)` | `4` |
+| `NT_MU` | Möbius function μ(n) | `NT_MU(n)` | `=NT_MU(30)` | `-1` |
+
 ### Lookup and reference
 
 | Function | Description | Signature | Example | Result |
@@ -323,6 +468,8 @@ legacy names and the modern dotted names (e.g. `BINOM.DIST`) are registered.
 | `MATCH` | Position of value (type 1/0/-1) | `MATCH(value, range, [match_type])` | `=MATCH(7,A1:A9,0)` | index of 7 |
 | `INDEX` | Value at row/col of a range | `INDEX(range, row, [col])` | `=INDEX(A1:C9,2,3)` | cell at (2,3) |
 | `XLOOKUP` | Modern lookup (exact by default) | `XLOOKUP(value, lookup_range, return_range, [if_missing], [match])` | `=XLOOKUP("kiwi",A1:A9,C1:C9)` | matched value |
+| `XMATCH` | Modern position match (modes 0 exact / -1 next-smaller / 1 next-larger / 2 wildcard; search 1 forward, -1 reverse) | `XMATCH(value, range, [match_mode], [search_mode])` | `=XMATCH(25,{10,20,30},1)` | `3` |
+| `LOOKUP` | Classic largest-value-≤ lookup (vector or array form) | `LOOKUP(value, lookup_vector, [result_vector])` | `=LOOKUP(5.75,A1:A5,B1:B5)` | matched value |
 
 **Reference / context functions.** These see the *calling cell* and the raw
 **reference** rather than its value. `OFFSET` and `INDIRECT` return a live range
@@ -342,6 +489,69 @@ For `VLOOKUP`/`HLOOKUP` the 4th argument defaults to **TRUE** (approximate,
 assumes ascending order); pass `FALSE` for an exact match. `MATCH` defaults to
 type `1` (largest value ≤ target, ascending); `0` is exact; `-1` is smallest
 value ≥ target.
+
+### Dynamic arrays and spill
+
+A formula whose result is an *array* **spills**: the formula lives in the
+top-left **anchor** cell and the remaining values fill the cells below and to
+the right. You edit only the anchor; the spilled cells are computed, not stored,
+so the workbook saves just the one source formula. If a cell the array needs to
+fill already holds something, the anchor shows **`#SPILL!`**; an array that
+comes out empty (e.g. `FILTER` with no matches) shows **`#CALC!`**. The GUI
+draws a dashed blue outline around a spill range; the TUI tints it.
+
+| Function | Description | Signature | Example | Result |
+|---|---|---|---|---|
+| `UNIQUE` | Distinct values (first-seen order) | `UNIQUE(range)` | `=UNIQUE(A1:A9)` | column of distinct values |
+| `SORT` | Sort a range | `SORT(range, [ascending])` | `=SORT(A1:A9)` | sorted column |
+| `SORTBY` | Sort rows by one or more key arrays | `SORTBY(array, by1, [order1], …)` | `=SORTBY(A1:A9,B1:B9,-1)` | rows of `A` by `B` desc |
+| `FILTER` | Keep values where a condition is truthy | `FILTER(range, condition_range)` | `=FILTER(A1:A9,B1:B9)` | matching values |
+| `SEQUENCE` | Generate a run of numbers | `SEQUENCE(rows, [cols], [start], [step])` | `=SEQUENCE(2,3)` | 2×3 block `1..6` |
+| `RANDARRAY` | Array of random numbers | `RANDARRAY([rows],[cols],[min],[max],[int])` | `=RANDARRAY(3,1,1,6,TRUE)` | random column |
+| `TRANSPOSE` | Flip rows and columns | `TRANSPOSE(array)` | `=TRANSPOSE(A1:A3)` | one row |
+| `VSTACK` / `HSTACK` | Stack arrays vertically / horizontally | `VSTACK(a, b, …)` | `=VSTACK(A1:A3,B1:B3)` | combined block |
+| `TAKE` / `DROP` | Keep / remove first or last rows·cols | `TAKE(array, rows, [cols])` | `=TAKE(A1:A9,3)` | first 3 |
+| `CHOOSEROWS` / `CHOOSECOLS` | Pick rows / columns (1-based, negatives from end) | `CHOOSEROWS(array, n1, …)` | `=CHOOSEROWS(A1:A9,1,-1)` | first and last |
+| `TOROW` / `TOCOL` | Flatten to a single row / column | `TOCOL(array, [ignore], [by_col])` | `=TOCOL(A1:C3)` | one column |
+| `EXPAND` | Grow to a size, padding | `EXPAND(array, rows, [cols], [pad])` | `=EXPAND(A1:A3,5,1,0)` | 5 rows, padded |
+| `WRAPROWS` / `WRAPCOLS` | Wrap a vector into rows / columns | `WRAPROWS(vector, count, [pad])` | `=WRAPROWS(A1:F1,2)` | 3×2 block |
+| `MMULT` | Matrix product | `MMULT(a, b)` | `=MMULT(A1:B2,D1:E2)` | product block |
+| `MINVERSE` | Inverse of a square matrix | `MINVERSE(a)` | `=MINVERSE(A1:B2)` | inverse (or `#NUM!`) |
+| `MUNIT` | The n×n identity matrix | `MUNIT(n)` | `=MUNIT(3)` | 3×3 identity |
+
+These also compose when nested inside an aggregate without spilling — e.g.
+`=SUM(UNIQUE(A1:A9))`, `=COUNT(FILTER(A1:A9,B1:B9))`, or `=SUM(MMULT(A1:B2,D1:E2))`.
+
+**Array constants.** Write a literal array inline with braces: commas separate
+columns, semicolons separate rows. `={1,2,3}` is a row, `={1;2;3}` a column, and
+`={1,2;3,4}` a 2-D block. They spill and compose like any array — `=SORT({3,1,2})`,
+`=SUM({1,2,3,4})`, `={1,2,3}*10`.
+
+**Array arithmetic (broadcasting).** Operators apply element-wise across arrays
+and spill the result. A scalar broadcasts against every element; two arrays
+combine cell-by-cell; a row and a column form an outer product. Dimensions must
+match or be 1 (numpy-style); otherwise the result is `#VALUE!`.
+
+| Formula | Result |
+|---|---|
+| `=A1:A3*2` | each of A1:A3 doubled, spilled down |
+| `=10+A1:A3` | 10 added to each |
+| `=A1:A3>100` | a boolean array (feeds `FILTER`) |
+| `=A1:C1*E1:E2` | a row × a column → a 2-D block |
+| `=SUM(A1:A3*B1:B3)` | element-wise product, then summed (like `SUMPRODUCT`) |
+
+**Spill-range reference `A1#`.** `A1#` is the whole array that spilled from the
+anchor `A1`. It tracks the source as it resizes: `=SUM(A1#)` totals the spill,
+`=A1#` mirrors it elsewhere. A `#` on a cell that isn't a spill anchor is
+`#REF!`.
+
+**Implicit intersection `@`.** `=@A1:A10` returns the one value from the range on
+the calling cell's row (or column, for a horizontal range); `=@SEQUENCE(5)`
+forces a function's first value so it does *not* spill.
+
+**`IF` over an array** broadcasts element-wise: `=IF(A1:A9>0,"+","−")` spills a
+label per row, and `=SUM(IF(A1:A9>0,A1:A9,0))` sums just the positives — the
+classic array-formula pattern, no Ctrl+Shift+Enter needed.
 
 ### Logical and control flow
 
@@ -400,6 +610,9 @@ untaken branches never run (no spurious errors or side effects).
 | `DOLLAR` | Format as currency text | `DOLLAR(num, [decimals])` | `=DOLLAR(1234.567)` | `$1,234.57` |
 | `FIXED` | Fixed-decimal text | `FIXED(num, [decimals], [no_commas])` | `=FIXED(1234.567,1)` | `1,234.6` |
 | `NUMBERVALUE` | Parse localized number text | `NUMBERVALUE(text, [dec_sep], [grp_sep])` | `=NUMBERVALUE("1,234.5")` | `1234.5` |
+| `TEXTSPLIT` | Split text into a spilled array (row and/or column delimiters, each a string or array of strings) | `TEXTSPLIT(text, col_delim, [row_delim], [ignore_empty], [match_mode], [pad_with])` | `=TEXTSPLIT("a,b;c,d",",",";")` | 2×2 spill |
+| `ARRAYTOTEXT` | Render an array as text (`format` 1 = strict `{…}`) | `ARRAYTOTEXT(array, [format])` | `=ARRAYTOTEXT({1,2;3,4})` | `1, 2, 3, 4` |
+| `VALUETOTEXT` | Render a value as text (`format` 1 quotes strings) | `VALUETOTEXT(value, [format])` | `=VALUETOTEXT("hi",1)` | `"hi"` |
 
 ### Date and time
 
@@ -430,6 +643,8 @@ Dates are ISO strings. `NOW` returns a date-time; `TODAY` returns a date.
 | `ISOWEEKNUM` | ISO-8601 week of the year | `ISOWEEKNUM(date)` | `=ISOWEEKNUM("2026-01-01")` | `1` |
 | `YEARFRAC` | Year fraction between two dates (basis 0–4) | `YEARFRAC(start, end, [basis])` | `=YEARFRAC("2026-01-01","2026-07-01")` | `0.5` |
 | `DAYS360` | Days on a 360-day basis | `DAYS360(start, end, [method])` | `=DAYS360("2026-01-01","2026-02-01")` | `30` |
+| `WORKDAY.INTL` | `WORKDAY` with a configurable weekend (number 1–7 / 11–17, or a 7-char Mon-first mask like `"0000011"`) | `WORKDAY.INTL(start, days, [weekend], [holidays])` | `=WORKDAY.INTL("2026-01-01",5,11)` | `2026-01-07` |
+| `NETWORKDAYS.INTL` | `NETWORKDAYS` with a configurable weekend | `NETWORKDAYS.INTL(start, end, [weekend], [holidays])` | `=NETWORKDAYS.INTL("2026-01-01","2026-01-31",11)` | `27` |
 
 ### Financial
 
@@ -507,6 +722,11 @@ These return scalars; complex numbers are encoded as text such as `"3+4i"`
 | `IMSIN` | Sine | `IMSIN(c)` | `=IMSIN("0")` | `0` |
 | `IMCOS` | Cosine | `IMCOS(c)` | `=IMCOS("0")` | `1` |
 | `IMPOWER` | Raise to a real power | `IMPOWER(c, power)` | `=IMPOWER("1+1i",2)` | `2i` |
+| `IMTAN` / `IMCOT` | Tangent / cotangent | `IMTAN(c)` | `=IMTAN("0")` | `0` |
+| `IMSEC` / `IMCSC` | Secant / cosecant | `IMSEC(c)` | `=IMSEC("0")` | `1` |
+| `IMSINH` / `IMCOSH` / `IMTANH` | Hyperbolic sine / cosine / tangent | `IMSINH(c)` | `=IMCOSH("0")` | `1` |
+| `IMSECH` / `IMCSCH` | Hyperbolic secant / cosecant | `IMSECH(c)` | `=IMSECH("0")` | `1` |
+| `IMLOG2` / `IMLOG10` | Base-2 / base-10 logarithm | `IMLOG2(c)` | `=IMLOG2("4")` | `2` |
 | `MDETERM` | Determinant of a square range | `MDETERM(range)` | `=MDETERM(A1:B2)` | determinant |
 | `CONVERT` | Convert between units | `CONVERT(num, from_unit, to_unit)` | `=CONVERT(1,"mi","km")` | `1.609` |
 | `INTERP` | Linear interpolation at x | `INTERP(x, known_xs, known_ys)` | `=INTERP(2.5,A1:A9,B1:B9)` | interpolated y |
@@ -594,6 +814,7 @@ units note, and worked examples in [RF toolkit](rf-toolkit.md).
 | `GRIDLAT` / `GRIDLON` | locator → centre lat/lon | `GRIDLAT(grid)` | |
 | `GRIDDIST` / `GRIDBEARING` | distance (km) / bearing (°) | `GRIDDIST(a, b)` | `=GRIDDIST("JN58","IO91")` |
 | `HAMBAND` | US amateur band name | `HAMBAND(freq_hz)` | `=HAMBAND(14.1e6)` → `20m` |
+| `DXCC` | DXCC entity for a callsign prefix | `DXCC(callsign)` | `=DXCC("W1AW")` → `United States` |
 | `CTCSSTONE` | standard CTCSS tone (1–50) | `CTCSSTONE(n)` | `=CTCSSTONE(13)` → `100` |
 | `NEARESTCTCSS` | nearest standard CTCSS tone | `NEARESTCTCSS(freq_hz)` | `=NEARESTCTCSS(100.1)` → `100` |
 | `DIPOLER` / `DIPOLEX` | dipole input R / X (Ω) | `DIPOLER(length_wl, [radius_wl])` | `=DIPOLER(0.5)` → `~73` |

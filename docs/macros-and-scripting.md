@@ -123,6 +123,64 @@ def mysum(args):
     return sum(numbers(args)) or 0
 ```
 
+## The embedded Python console
+
+Beyond macros and UDFs, abax carries a full **Python REPL wired to the live
+workbook** — a GUI dock (part of the default workspace, or `` Ctrl+` ``-adjacent
+via View) and the TUI `:py` mode. It is gated by the same one-time consent
+prompt, and in the GUI it runs **out-of-process, off the UI thread** (a worker
+holds a copy of the workbook; each command ships the workbook in and the mutated
+workbook back, which the GUI then applies), so a crash, hang, or runaway
+allocation there can't take the app down — **Interrupt** kills and respawns the
+worker.
+
+The namespace (built by `abax/core/console_ns.py`) binds these workbook helpers:
+
+| Name | What it is |
+|------|-----------|
+| `wb` | the live `Workbook` |
+| `sheet` | `sheet()` returns the active `Sheet` |
+| `doc` | a document handle (`doc.workbook`) |
+| `cell(ref)` | read a cell's value, e.g. `cell("B7")` |
+| `put(ref, value)` | write a cell, e.g. `put("A1", 42)` |
+| `read_matrix("A1:C3")` / `write_matrix("E1", mat)` | a range ↔ a list-of-lists of floats |
+| `sheet_to_df([rng])` / `df_to_sheet(df, "A1")` | a range ↔ a pandas DataFrame (needs pandas) |
+| `sql(query)` | run SQL across the sheets → `(columns, rows)` |
+| `describe()` | a per-column profile of the active sheet |
+| `rpn` | a live RPN calculator instance |
+| `compile_expr` | compile a math expression in `x` (used by the grapher) |
+
+It also **preloads the whole science / RF stack** as modules (`matrix`, `eigen`,
+`units`, `numeric`, `stats`, `ml`, `cluster`, `gmm`, `trees`, `bayes`, `metrics`,
+`signal`, `spectral`, `filters`, `fft`, `interp`, `ode`, `rf`, `antenna`, `mom`,
+`wire_mom`, `nec`, `chartsvg`, `iq`, `wbdiff`, `html_report`, `urlfetch`,
+`goalseek`, `dxcc`, `adif`, …) plus the optional data-science packages when
+installed (`numpy`/`np`, `pandas`/`pd`, `scipy`, `statsmodels`/`sm`, `sklearn`,
+`pingouin`/`pg`, `pymc`/`pm`, `sksurv`) — see [data-science.md](data-science.md)
+for those. A `Sheet` echoed at the prompt renders as a **Markdown table** (the
+rich-display protocol).
+
+```python
+>>> put("A1", 10); put("A2", 20)
+>>> cell("A1")
+10
+>>> read_matrix("A1:A2")
+[[10.0], [20.0]]
+>>> df = sheet_to_df()                 # active sheet -> DataFrame (pandas)
+>>> df_to_sheet(df.describe(), "E1")   # write the summary block back
+>>> cols, rows = sql("SELECT * FROM Sheet1 WHERE B > 100")
+```
+
+## Running a script file
+
+*Tools → Run Python script…* runs an arbitrary `.py` against the current
+workbook, after the consent prompt. Unlike the console, a script runs
+**in-process** (no worker isolation). It receives the same core handles —
+`doc`, `wb`, `sheet`, `cell`, `put`, `refresh` — with `__name__ == "abax_script"`.
+On success abax marks the document dirty and refreshes the grid; any exception is
+reported with a traceback. Use this for one-off batch edits over an open
+workbook (a macro is the better choice for anything you'll reuse).
+
 ## Discovery and loading
 
 abax discovers macro files from:

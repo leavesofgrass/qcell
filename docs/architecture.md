@@ -18,7 +18,8 @@ core  ──►  engine  ──►  gui / tui
 ```
 
 - **`abax/core/` — pure, stdlib-only.** The spreadsheet engine and formula
-  machinery (tokenizer, parser, evaluator, 400+ functions, sheet/workbook model,
+  machinery (tokenizer, parser, evaluator, 500+ functions, the dynamic-array
+  spill engine, sheet/workbook model,
   search, fill/sort, completion, reference-shifting) live at the `core/` root, with
   the pluggable libraries grouped into subpackages:
   - **`core/io/`** — tabular import/export adapters (CSV/TSV, XML, Markdown, SQLite,

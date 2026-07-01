@@ -10,6 +10,129 @@ All notable changes to abax are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.3] — 2026-07-01
+
+### Added
+- **Array constants.** Inline literal arrays with braces — `={1,2,3}` (a row),
+  `={1;2;3}` (a column), `={1,2;3,4}` (a block). They spill and compose like any
+  array: `=SORT({3,1,2})`, `=SUM({1,2,3,4})`, `={1,2,3}*10`.
+- **`IF` broadcasts over an array condition.** `=IF(A1:A9>0,"+","−")` spills a
+  result per row and `=SUM(IF(A1:A9>0,A1:A9,0))` works directly — the classic
+  array-formula idiom without Ctrl+Shift+Enter.
+- **Matrix functions that spill** — `MMULT` (product), `MINVERSE` (inverse, or
+  `#NUM!` when singular), `MUNIT(n)` (identity), backed by the existing
+  `core/science/matrix` solver. They compose too: `=SUM(MMULT(A1:B2,D1:E2))`.
+- **Array arithmetic & broadcasting.** Operators now apply element-wise across
+  array operands and spill the result: `=A1:A3*2`, `=10+A1:A3`, `=A1:A3>9` and
+  even outer products like `=A1:C1*E1:E2` (a row × a column) all work. Shapes
+  broadcast numpy-style (a dimension must match or be 1); incompatible shapes
+  give `#VALUE!`. A knock-on benefit: `=FILTER(A1:A9, A1:A9>100)` now works,
+  because the comparison yields a boolean array.
+- **Spill-range reference `A1#`.** `A1#` refers to the whole array that spilled
+  from anchor `A1` — `=SUM(A1#)` totals a dynamic spill, `=A1#` mirrors it, and
+  the reference tracks the source as it grows or shrinks. A `#` on a non-spilling
+  cell gives `#REF!`.
+- **Implicit-intersection operator `@`.** `=@A1:A10` returns the single value
+  from the range aligned with the calling cell's row/column; `=@SEQUENCE(5)`
+  forces a function's first value (opt out of spilling).
+- **TI calculator letter variables + ALPHA entry.** The TI-83/84's `STO>` and
+  full **ALPHA** keypad now work: press ALPHA then a key to type its green letter
+  (A–Z, θ; ALPHA twice = A-LOCK), so `5` `STO>` `ALPHA` `A` stores `5→A` and `A`
+  recalls it in later expressions (unset variables read as `0`). A physical letter
+  key types the variable too. The remaining TI subsystem keys (STAT PLOT, PRGM,
+  CALC, …) report a clear one-line note.
+- **Dynamic-array spill.** A formula whose result is an array now *spills* across
+  the neighbouring cells: the formula lives in the top-left **anchor** and the
+  remaining values fill the range below/right of it. Blocked spills surface as
+  **`#SPILL!`** (a non-empty or already-claimed target cell) and an empty result
+  (e.g. `FILTER` with no matches) as **`#CALC!`**. Only the anchor's source
+  formula is stored — spilled cells are never persisted, so the `.abax` envelope
+  round-trips a single `=SEQUENCE(3)` and re-spills on load. The spill map is a
+  lazy, memoized pass on the `Sheet` (candidate formulas only, so sheets with no
+  array formulas pay nothing) that recomputes on edit and propagates to
+  dependents. The GUI paints a dashed blue spill outline; the TUI tints the
+  range. `SORT`/`UNIQUE`/`SEQUENCE`/`FILTER`/`TRANSPOSE` and the reshaping family
+  now work standalone, not only nested inside an aggregate.
+- **14 dynamic-array reshaping functions** (`core/arrayfuncs.py`): **TRANSPOSE**,
+  **VSTACK**/**HSTACK**, **TAKE**/**DROP**, **CHOOSEROWS**/**CHOOSECOLS**,
+  **SORTBY**, **TOROW**/**TOCOL**, **EXPAND**, **WRAPROWS**/**WRAPCOLS**, and
+  **RANDARRAY**. `SEQUENCE(rows, cols)` now returns a 2-D block that spills.
+- **Wave H — Gnumeric-parity functions** (~100 new functions across three
+  pure-stdlib packs, each oracle-tested; the registry grew 419 → 519):
+  - **The R.\* distribution family** (`core/gnumeric_fns.py`): density /
+    cumulative / quantile (`R.D…`/`R.P…`/`R.Q…`) for the normal, log-normal,
+    exponential, gamma, beta, Weibull, chi-square, Student-t, F, uniform, Cauchy,
+    **Gumbel, Laplace, logistic, skew-normal, Rayleigh and Pareto** continuous
+    distributions, plus binomial, Poisson, geometric, negative-binomial and
+    hypergeometric discrete ones (with quantiles). Built on the existing
+    incomplete-gamma/beta backbone.
+  - **Special math & number theory** (`core/gnumeric_math.py`): `BETA`,
+    `BETALN`, `POCHHAMMER`, `GD` (Gudermannian), and Gnumeric's number-theory
+    pack — `ITHPRIME`, `ISPRIME`, `NT_PI` (prime counting), `NT_D` (divisor
+    count), `NT_SIGMA` (divisor sum), `NT_PHI` (Euler totient) and `NT_MU` (Möbius).
+  - **More statistics** (`core/gnumeric_stats.py`): the `…A` variants
+    (`MAXA`/`MINA`/`VARA`/`VARPA`/`STDEVA`/`STDEVPA`), the *exclusive* percentile
+    family (`PERCENTILE.EXC`/`QUARTILE.EXC`/`PERCENTRANK.EXC`), `SKEWP`, `KURTP`,
+    `COVARIANCE.S`, `RANGE`, `PROB`, and the array-returning (now-spilling)
+    `FREQUENCY`, `MODE.MULT`, `TREND`,
+    `GROWTH`, `LINEST` and `LOGEST`. `LINEST`/`LOGEST` do **multiple** regression
+    (several predictor columns), returning coefficients in Excel's right-to-left
+    order; `TREND`/`GROWTH` are single-predictor.
+- **Wave I — modern-Excel completeness** (two more oracle-tested pure-stdlib
+  packs; the registry grew 519 → 562 eager, **575 names** in all):
+  - **Everyday modern Excel** (`core/excel_modern.py`): **`TEXTSPLIT`** (spills
+    a row/grid; multi-delimiter, `ignore_empty`, case-insensitive mode, pad
+    value), `ARRAYTOTEXT`/`VALUETOTEXT`, **`XMATCH`** (exact / next-smaller /
+    next-larger / wildcard; forward or reverse) and the classic **`LOOKUP`**
+    (vector + array forms), `CEILING.MATH`/`FLOOR.MATH`, the workhorse
+    **`SUBTOTAL`** (1–11 / 101–111) and **`AGGREGATE`** (1–19 with the
+    ignore-errors options), `WORKDAY.INTL`/`NETWORKDAYS.INTL` (weekend numbers
+    or a `"0000011"` mask), and the complex tail `IMTAN`/`IMCOT`/`IMSEC`/
+    `IMCSC`/`IMSINH`/`IMCOSH`/`IMTANH`/`IMSECH`/`IMCSCH`/`IMLOG2`/`IMLOG10`.
+  - **The dotted distribution family** (`core/dist_dotted.py`): the left-tail /
+    density halves the legacy right-tail names lacked — `NORM.S.DIST`,
+    `T.DIST`/`T.DIST.RT`/`T.DIST.2T`, `T.INV`/`T.INV.2T`, `CHISQ.DIST`/
+    `CHISQ.INV`, `F.DIST`/`F.INV`, `CONFIDENCE.T` — plus real hypothesis tests:
+    **`T.TEST`** (1/2 tails; paired, pooled or Welch), **`Z.TEST`**,
+    **`F.TEST`** and **`CHISQ.TEST`** (with the `ZTEST`/`FTEST`/`CHITEST`
+    legacy aliases), and the `FORECAST.LINEAR`/`SKEW.P`/`GAMMALN.PRECISE`
+    dotted aliases.
+- **HP-16C: the immediate bit/word keys are implemented** (were stubs) — `MASKL`,
+  `MASKR`, `#B` (bit count), `ABS`, `ASR`, `RMD`, `1's`/`2's` complement, `SB`/
+  `CB`/`B?` (set/clear/test bit) and `RLn`/`RRn`. Programming-mode keys (GTO/GSB/
+  LBL/…) now report *"programming-mode key (no program memory)"* rather than a
+  bare "not implemented".
+- **HP-15C: hyperbolic, combinatorics and gradians** — `HYP`/`HYP-1` prefixes
+  (sinh/cosh/tanh and inverses), `Cy,x`/`Py,x` (combinations/permutations) and
+  the `GRD` angle mode now work; solver/matrix/program keys report a clear
+  "needs program/solver memory" message.
+
+### Changed
+- **The curses TUI works on Windows out of the box.** The `tui` extra now pulls
+  in `windows-curses` (via a `sys_platform == 'win32'` marker, so it's a no-op on
+  Linux/macOS), so `pip install abax[tui]` then `abax tui` just works — no more
+  "curses is unavailable" notice.
+- **Faster parallel test runs.** `pytest-xdist` and `pytest-timeout` are in the
+  `dev` extra; `just test-fast` runs the whole suite across all cores
+  (`pytest -n auto`) — the ~40-minute single-threaded suite finishes in a few
+  minutes. (Made reliable by the GUI-window disposal fix below.)
+- **Bulk load no longer double-scans cells.** `Sheet.set_cells_bulk` detects
+  array-formula anchors inside its existing loop instead of a second full pass,
+  restoring CSV/Parquet load speed after the spill engine landed (see
+  [`benchmarks/rescout.md`](benchmarks/rescout.md)).
+
+### Fixed
+- **GUI tests now dispose their windows.** The `test_gui_*` fixtures built a
+  `MainWindow` per test but never tore it down, so a long-lived process
+  accumulated live windows until a later test that restyled the whole widget tree
+  (the zoom test's repeated global `setStyleSheet`) crawled or segfaulted Qt — a
+  pre-existing offscreen-Qt fragility (it reproduces on 0.1.2). The fixtures now
+  yield-and-delete their window, and a conftest autouse pass sweeps up any strays,
+  so the whole suite runs green in one process again and `just test-fast` is back
+  to a plain `pytest -n auto`.
+
+## [0.1.2] — 2026-07-01
+
 ### Changed
 - **First-run optional-features chooser is truly one-shot.** Dismissing it via the
   window's close button or Esc (not just the Install / Skip buttons) now also marks
@@ -439,5 +562,7 @@ Initial public release.
 - Tag-driven CI builds and publishes the wheel, sdist, and `qcell.pyz` to GitHub
   Releases.
 
+[0.1.3]: https://github.com/leavesofgrass/qcell/compare/v0.1.2...v0.1.3
+[0.1.2]: https://github.com/leavesofgrass/qcell/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/leavesofgrass/qcell/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/leavesofgrass/qcell/releases/tag/v0.1.0

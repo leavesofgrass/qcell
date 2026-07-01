@@ -24,7 +24,7 @@ These are parsed before any command and the first two are *fast paths* — they 
 
 ```bash
 $ abax --version
-abax 0.1.2
+abax 0.1.3
 ```
 
 ### `--deps`

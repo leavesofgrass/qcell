@@ -24,7 +24,14 @@ def app():
 def win(app):
     from abax.gui.main_window import MainWindow
 
-    return MainWindow(Settings())
+    _win = MainWindow(Settings())
+    yield _win
+    # Dispose the window so it doesn't accumulate across a long test process
+    # (many live MainWindows segfault Qt when a later test restyles them).
+    from abax.gui._qtcompat import QEvent as _QEvent
+    _win.deleteLater()
+    app.sendPostedEvents(None, _QEvent.Type.DeferredDelete)
+    app.processEvents()
 
 
 def _menu_titles(win):
@@ -75,7 +82,7 @@ def test_about_covers_current_features(win, monkeypatch):
     text = captured["text"]
     # The About box should reflect the breadth of the app, not just "spreadsheet".
     for keyword in ("RF", "signal processing", "antenna modeling", "Jupyter kernel",
-                    "machine learning", "Smith chart", "XLOOKUP"):
+                    "machine learning", "Smith chart", "dynamic arrays", "spill"):
         assert keyword in text, keyword
 
 

@@ -25,7 +25,7 @@ unit-neutral:
 
 Put MHz/feet in your own cells and scale, or use `CONVERT` (see
 [file formats / functions](formula-reference.md)) — e.g. `=CONVERT(A1,"ft","m")`.
-A forthcoming **RF toolkit dialog** and **Smith chart** will accept MHz / feet
+The **RF toolkit dialog** and **Smith chart** (*Radio* menu) accept MHz / feet
 directly and show results in both metric and imperial.
 
 ## Power & levels
@@ -62,6 +62,33 @@ directly and show results in both metric and imperial.
 | `VSWR2GAMMA(vswr)` | \|Γ\| from VSWR |
 | `Z0COAX(d_outer, d_inner, [eps_r=1])` | coax characteristic impedance (Ω) |
 | `VELFACTOR(eps_r)` | velocity factor 1/√εr |
+| `QWMATCH(z1, z2)` | quarter-wave transformer impedance √(Z₁·Z₂) (Ω) |
+| `SWRPWR(forward_w, reflected_w)` | SWR from forward / reflected power |
+
+## Component & antenna design (radio math)
+
+Resonant-circuit component values, loaded-Q / bandwidth, inductor design, and
+antenna dimensions, backed by
+[`abax/core/science/rf_math.py`](../abax/core/science/rf_math.py). All SI units
+(farads, henries, metres, hertz) except `TOROIDL`/`TOROIDN`, which take the
+manufacturer's **AL** value in nH/turn².
+
+| Function | Returns |
+| --- | --- |
+| `CFROMXC(xc_ohms, freq_hz)` | capacitance for a target reactance (F) |
+| `LFROMXL(xl_ohms, freq_hz)` | inductance for a target reactance (H) |
+| `RESONANTC(freq_hz, L_henry)` | C that resonates with L at f (F) |
+| `RESONANTL(freq_hz, C_farad)` | L that resonates with C at f (H) |
+| `QBW(center_hz, bandwidth_hz)` | loaded Q from centre frequency and bandwidth |
+| `BWQ(center_hz, q)` | bandwidth from centre frequency and Q (Hz) |
+| `AIRCOILL(diameter_m, length_m, turns)` | single-layer air-core inductance, Wheeler (H) |
+| `AIRCOILN(inductance_h, diameter_m, length_m)` | turns for a target air-core inductance |
+| `TOROIDL(al_nh, turns)` | toroid inductance from an AL value (H) |
+| `TOROIDN(inductance_h, al_nh)` | turns for a target toroid inductance |
+| `LOOPLEN(freq_hz)` | full-wave loop circumference (m) |
+| `DISHGAIN(diameter_m, freq_hz, [eff=0.55])` | parabolic-dish gain (dBi) |
+| `DISHBW(diameter_m, freq_hz)` | parabolic-dish half-power beamwidth (degrees) |
+| `DOPPLER(freq_hz, velocity_mps)` | Doppler shift for a closing/opening velocity (Hz) |
 
 ## Link budget & propagation
 
@@ -115,8 +142,12 @@ C2: =GRIDBEARING("JN58td", "IO91wm") → ~300    (degrees, WNW)
 | `HAMBAND(freq_hz)` | US amateur band name for a frequency (e.g. `14.1e6` → `20m`), `#N/A` outside any band |
 | `CTCSSTONE(n)` | the *n*-th standard EIA CTCSS tone (1–50), in Hz |
 | `NEARESTCTCSS(freq_hz)` | the standard CTCSS tone nearest a measured frequency |
+| `DXCC(callsign)` | DXCC entity for a callsign (`=DXCC("W1AW")` → `United States`); handles portable prefixes and operational suffixes |
 
-## GUI tools (*Tools → Scientific*)
+## GUI tools (the *Radio* menu)
+
+All of the RF/ham tools live under a dedicated top-level **Radio** menu (general
+math tools stay under *Tools → Scientific*):
 
 - **RF toolkit** — a mode-switching dialog for **link budget**, **coax line**,
   **antenna dimensions**, and **L-network matching**, showing results in both
@@ -126,6 +157,12 @@ C2: =GRIDBEARING("JN58td", "IO91wm") → ~300    (degrees, WNW)
 - **Antenna pattern** — a polar plot of the analytic dipole / array patterns with
   directivity (dBi) and half-power beamwidth. It re-plots live as you change N /
   spacing / phase, and **exports the pattern as SVG** or a **NEC `.nec`** deck.
+- **RF reference** — a filterable view of the US amateur band plan (with width and
+  mid-band wavelength) and the 50 EIA CTCSS tones; double-click (or *Send to cell*)
+  writes a value into the grid, and *Bands → new sheet* drops the band plan in.
+- **I/Q → SVG** — reads a two-column (I, Q) selection and exports the constellation
+  as an SVG, reporting power in dBFS.
+- **Solve NEC deck (PyNEC)** — see below.
 
 ## Antenna impedance
 
@@ -159,8 +196,33 @@ wire_mom.yagi(0.47, [(0.5, -0.25), (0.45, 0.15)], spacing_wl=0.2)  # a Yagi
   abax exchanges models with 4nec2 / EZNEC / xnec2c. The Antenna pattern viewer's
   *Export NEC* button writes a deck for the current geometry.
 
-A live PyNEC adapter (for reference-grade accuracy) remains a future option; the
-built-in solver is the working path.
+### Optional PyNEC solver (reference-grade)
+
+For reference-grade accuracy abax can hand a deck to **PyNEC** (the SWIG binding
+to the classic NEC-2 engine) when it is installed — *Radio → Solve NEC deck
+(PyNEC)*, backed by `engine/necpy.py`. It is a fully **optional** dependency
+with a **graceful fallback**: if PyNEC is not importable, abax silently uses its
+own built-in Method-of-Moments solver instead, so nothing breaks. `abax --deps`
+reports whether PyNEC is present.
+
+**Platform note (why it may be absent).** PyNEC is a compiled C++/SWIG
+extension and does **not** publish wheels for every platform — notably there are
+no Windows wheels. It is included in the `nec` extra and in `all` (so the
+background auto-installer *attempts* it on a default install), but on a machine
+without a matching wheel that best-effort build can fail quietly; abax then just
+keeps using the built-in solver. This is deliberate — PyNEC is a
+nice-to-have accelerator, not a requirement.
+
+To install it yourself:
+
+```bash
+pip install abax[nec]      # or: pip install PyNEC
+```
+
+On Windows (or any platform lacking a wheel) the build needs a C/C++ toolchain
+and SWIG on `PATH` — e.g. MSVC Build Tools plus `swig`. If that is more than you
+want, do nothing: the built-in `mom` / `wire_mom` / `nec` path above is the
+supported default and matches NEC on the validation cases.
 
 ## Signal / DSP
 

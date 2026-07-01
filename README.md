@@ -2,7 +2,7 @@
 
 A keyboard-first **statistics and data-science workstation** — an integrated
 environment for data work, built on a fast, scriptable spreadsheet. Load a
-dataset, explore it with **400+ formula functions** (statistics and distributions,
+dataset, explore it with **550+ formula functions** (statistics and distributions,
 financial, engineering, database, and **RF/ham-radio**), run built-in analyses
 (regression, t-tests, ANOVA, correlation),
 reshape it with pivot/group-by and recode, visualize with the grapher, hand a
@@ -94,7 +94,7 @@ python -m abax view qrpn-save.json --sheet stack   # read a qrpn calculator save
 
 ## Formulas
 
-400+ functions across aggregate, conditional, math, lookup, logical, text, date,
+550+ functions across aggregate, conditional, math, lookup, logical, text, date,
 statistics, engineering, **RF/ham-radio & antenna**, and info families:
 
 ```
@@ -108,9 +108,16 @@ statistics, engineering, **RF/ham-radio & antenna**, and info families:
 
 Operators `+ - * / ^ % &` and comparisons; ranges (`A1:C3`); absolute refs
 (`$A$1`); bare `TRUE`/`FALSE`. Errors are values (`#DIV/0!`, `#NAME?`, `#N/A`,
-`#REF!`, `#CIRC!`, …) and propagate. Control-flow functions (`IF`, `IFERROR`,
-`IFS`, `SWITCH`, `CHOOSE`) are lazily evaluated. Circular references surface as
-`#CIRC!`, never a crash.
+`#REF!`, `#SPILL!`, `#CALC!`, `#CIRC!`, …) and propagate. Control-flow functions
+(`IF`, `IFERROR`, `IFS`, `SWITCH`, `CHOOSE`) are lazily evaluated. Circular
+references surface as `#CIRC!`, never a crash.
+
+**Dynamic arrays.** A formula that yields an array *spills* across neighbouring
+cells (Excel-style): `=SORT(A1:A9)`, `=UNIQUE(B:B)`, `=SEQUENCE(3,3)`,
+`=FILTER(A1:A9, B1:B9>0)`, and the reshaping family (`TRANSPOSE`, `VSTACK`,
+`TAKE`, `MMULT`, …). Operators **broadcast** over ranges (`=A1:A3*2`), array
+constants (`={1,2;3,4}`) and array `IF` work, `A1#` references a spill range, and
+`@` takes a single value. See [docs/formula-reference.md](docs/formula-reference.md).
 
 ## Editing: copy / paste / fill / sort
 
