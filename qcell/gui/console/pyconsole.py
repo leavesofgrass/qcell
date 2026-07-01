@@ -39,7 +39,7 @@ _NS_NAMES = (
     "ml", "trees", "bayes", "metrics", "gmm", "financial", "algebraic", "ti_engine",
     "rf", "rf_bands", "antenna", "antenna_impedance", "mom", "wire_mom", "nec",
     "sql", "sqlsheets", "profile", "describe", "chartsvg", "dxcc", "adif",
-    "goalseek", "iq", "wbdiff", "html_report", "dxcc", "adif",
+    "goalseek", "iq", "wbdiff", "html_report", "urlfetch",
     "np", "numpy", "pd", "pandas", "scipy", "sm", "statsmodels", "sklearn",
     "pingouin", "pg", "pymc", "pm", "sksurv",
 )

@@ -288,6 +288,41 @@ class ToolsMixin:
 
         AntennaDialog(self).exec()
 
+    def solve_nec_pynec(self) -> None:
+        """Solve a NEC deck with PyNEC (reference-grade) if it is installed.
+
+        Falls back to a clear message when PyNEC is absent — the built-in MoM
+        (Scientific → RF toolkit / Antenna pattern) always works without it."""
+        from ._qtcompat import QFileDialog, QMessageBox
+        from ..engine import necpy
+
+        if not necpy.available():
+            QMessageBox.information(
+                self, "PyNEC",
+                "PyNEC is not installed. The built-in method-of-moments solver "
+                "(RF toolkit / Antenna pattern) works without it; install the "
+                "optional 'PyNEC' package for reference-grade results.")
+            return
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Solve NEC deck with PyNEC", "", "NEC deck (*.nec *.ez *.txt);;All files (*)")
+        if not path:
+            return
+        try:
+            from pathlib import Path
+
+            res = necpy.solve_deck(Path(path).read_text(encoding="utf-8", errors="replace"))
+        except Exception as exc:  # noqa: BLE001
+            QMessageBox.warning(self, "PyNEC", str(exc))
+            return
+        z = res["feed_impedance"]
+        QMessageBox.information(
+            self, "PyNEC result",
+            f"Frequency: {res['frequency_mhz']:g} MHz\n"
+            f"Segments: {res['n_segments']}\n"
+            f"Feed impedance: {z.real:.2f} {'+' if z.imag >= 0 else '-'} "
+            f"j{abs(z.imag):.2f} Ω")
+        self._set_status(f"PyNEC: Zin = {z.real:.1f}{z.imag:+.1f}j ohms")
+
     def show_signal_tool(self) -> None:
         from .dialogs.signal_dialog import SignalDialog
 

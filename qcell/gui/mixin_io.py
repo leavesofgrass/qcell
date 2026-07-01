@@ -177,6 +177,41 @@ class DocumentIOMixin:
             f"imported {len(prof.columns)} cols (delim {prof.delimiter!r}, "
             f"~{prof.approx_rows:,} rows)")
 
+    def import_from_url(self, url: str | None = None) -> None:
+        """Download a data file from a URL and open it.
+
+        The fetch (network) and the parse both run off the UI thread: a FuncWorker
+        downloads to a temp file whose extension is guessed from the URL / content
+        type, then hands it to the same extension-dispatch loader as File → Open.
+        """
+        from ._qtcompat import QInputDialog
+
+        if url is None:
+            url, ok = QInputDialog.getText(
+                self, "Import from URL", "URL (CSV, JSON, Excel, Parquet, …):")
+            if not ok or not url.strip():
+                return
+        url = url.strip()
+
+        def fetch_and_open():
+            from ..core.io import urlfetch
+            from ..engine.document import Document
+
+            path = urlfetch.fetch_url(url)
+            return Document.open(path)
+
+        from ..workers import FuncWorker
+
+        self._run_io(FuncWorker(fetch_and_open),
+                     on_success=self._url_import_succeeded,
+                     busy_msg=f"downloading {url[:60]}...")
+
+    def _url_import_succeeded(self, doc) -> None:
+        self._doc = doc
+        self.refresh_table()
+        self._update_title()
+        self._set_status(f"imported from URL into {doc.title}")
+
     def save_document(self, path: str | None = None) -> None:
         if path is None and self._doc.path is None:
             self.save_document_as()
