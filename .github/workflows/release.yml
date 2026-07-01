@@ -89,7 +89,9 @@ jobs:
   pypi:
     name: Publish to PyPI
     needs: [wheel]
-    if: startsWith(github.ref, 'refs/tags/v')
+    # Publishes on a `v*` tag push, or on a manual run (workflow_dispatch) — the
+    # latter lets you publish the current pyproject version without moving a tag.
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment:
       name: pypi
