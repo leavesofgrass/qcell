@@ -13,12 +13,11 @@ dist/
 _stage/
 *.egg-info/
 *.egg
-# abax.pyz is built with `just pyz`; not source
-abax.pyz
 
 # Packaging / installer output
 *.whl
 *.tar.gz
+*.pyz
 
 # Virtual environments
 .venv/
@@ -45,9 +44,7 @@ CLAUDE.md
 GEMINI.md
 AGENTS.md
 .claude/
-.cursor/
-.cursorrules
-.aider*
-.clinerules
-.windsurfrules
 .github/copilot-instructions.md
+
+# Personal / working notes — not part of the release
+dev/
