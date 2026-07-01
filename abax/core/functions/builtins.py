@@ -121,6 +121,9 @@ def _mode(args):
 
 
 def _product(args):
+    hit = _try_accel(args, "product")
+    if hit is not None:
+        return hit[0]
     err, nums = _numbers_checked(args)
     if err is not None:
         return err

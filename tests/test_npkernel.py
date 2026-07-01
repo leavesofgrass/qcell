@@ -38,7 +38,14 @@ def test_accelerated_matches_stdlib(accel):
     assert FUNCTIONS["COUNT"]([rv]) == float(n)
     assert FUNCTIONS["MIN"]([rv]) == pytest.approx(-7.0)
     assert FUNCTIONS["MAX"]([rv]) == pytest.approx((n - 1) * 0.5 - 7.0)
-    assert FUNCTIONS["PRODUCT"]([_col(5000, lambda i: 1.0)]) == 1.0
+    # PRODUCT over a large finite range: a single 2.0 among 1.0s (won't overflow),
+    # so the accelerated result must equal the stdlib reference (2.0), not just 1.0.
+    prv = _col(5000, lambda i: 2.0 if i == 0 else 1.0)
+    _runtime.set_aggregate_accelerator(None)
+    ref_prod = FUNCTIONS["PRODUCT"]([prv])
+    npkernel.register()
+    assert FUNCTIONS["PRODUCT"]([prv]) == pytest.approx(ref_prod)
+    assert ref_prod == pytest.approx(2.0)
 
 
 def test_reduce_range_ops_direct():
@@ -46,7 +53,9 @@ def test_reduce_range_ops_direct():
     for op, expect in (("sum", sum(range(5000))),
                        ("count", 5000.0),
                        ("min", 0.0),
-                       ("max", 4999.0)):
+                       ("max", 4999.0),
+                       ("sumsq", sum(i * i for i in range(5000))),
+                       ("product", 0.0)):  # range includes 0 -> product is 0
         handled, val = npkernel.reduce_range(rv, op)
         assert handled is True
         assert val == pytest.approx(expect)
