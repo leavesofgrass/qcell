@@ -7,6 +7,19 @@ All notable changes to qcell are documented here. The format follows
 ## [Unreleased]
 
 ### Changed
+- **Name-resolved formula ASTs are cached** — on a workbook with any defined name,
+  every formula evaluation used to re-walk and rewrite its whole AST to substitute
+  named ranges (on each `get_value`, defeating the parsed-AST cache), and the guard
+  that gated it rebuilt a sorted list just to test emptiness. The name registry now
+  carries an O(1) version counter, and each cell memoizes its name-resolved AST,
+  re-resolving only when its formula text or the registry actually changes.
+  Workbooks with no defined names skip the path entirely. No behaviour change.
+- **`core/functions.py` split into a `functions/` package** (maintainability; no
+  behaviour change) — the ~1850-line module becomes a package: the shared coercion
+  toolbox (`helpers.py`), the spreadsheet-function implementations (`builtins.py`),
+  the RF/ham domain functions (`rf.py`), and the two registries assembled in
+  `__init__.py`. `FUNCTIONS` / `LAZY_FUNCTIONS` and the helper re-exports macros rely
+  on are unchanged; a golden test pins the exact registry (201 + 6).
 - **Formula-engine hot-path optimizations** — `RangeValue.flat()` memoizes its single
   materialization (a range flattened more than once in a formula — SUMPRODUCT, AND/OR,
   COUNTIF — is ~50× cheaper on the repeats); `Sheet.used_bounds()` (called on every
@@ -83,6 +96,19 @@ All notable changes to qcell are documented here. The format follows
 - **HTML report export** (*Data → Analyze → Export as HTML report*) — write the whole
   workbook to a standalone, escaped HTML document (`core/io/html_report.py`, console
   `html_report`).
+- **Import from URL** (*File → Import from URL*) — download a remote data file
+  (CSV, JSON, Excel, Parquet, …) and open it; the extension is guessed from the URL
+  or content type and the file is loaded through the same dispatch as File → Open.
+  The download and parse run off the UI thread. Pure-stdlib `core/io/urlfetch.py`,
+  console `urlfetch`.
+- **RF reference panel** (*Scientific → RF reference (bands / CTCSS)*) — a
+  filterable view of the US amateur band plan (with width and mid-band wavelength)
+  and the 50 EIA CTCSS tones; "Bands → new sheet" drops the band plan into the
+  workbook.
+- **Optional PyNEC solver** (*Scientific → Solve NEC deck (PyNEC)*) — when the
+  optional `PyNEC` package is installed, solve a NEC antenna deck for reference-grade
+  feed impedance (`engine/necpy.py`); the built-in method-of-moments solver continues
+  to work without it.
 - **Budgeting tools** (*Tools → Budget wizard*) — a guided dialog to set up and
   track expenses: enter monthly income, seed categories from the **50/30/20 rule**
   (or start blank), tweak the amounts, and *Create budget sheet*. It drops a **live

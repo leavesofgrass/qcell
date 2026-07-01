@@ -1,21 +1,10 @@
-"""Built-in spreadsheet functions.
+"""Implementations of the built-in (non-RF) spreadsheet functions.
 
-Two registries:
-
-* :data:`FUNCTIONS` — eager functions. Each receives a list of already-evaluated
-  arguments. A *range* argument arrives as a :class:`RangeValue`; scalars arrive
-  as plain Python values. Aggregate functions flatten via :func:`_flatten`.
-* :data:`LAZY_FUNCTIONS` — control-flow functions (IF, IFERROR, IFS, SWITCH,
-  CHOOSE). Each receives ``(arg_nodes, ev)`` where ``ev(node)`` evaluates an AST
-  node on demand, so untaken branches are never computed.
-
-Error values (:class:`CellError`) propagate: most functions short-circuit on
-the first error in their arguments.
-
-Add a function by registering it in :data:`FUNCTIONS` (or :data:`LAZY_FUNCTIONS`).
-User macros extend :data:`FUNCTIONS` at runtime (see :mod:`qcell.macros`).
+Math, statistics, distributions, lookup, text, date/time and logical/control
+functions. Registered into FUNCTIONS / LAZY_FUNCTIONS by the package __init__.
 """
 
+# ruff: noqa: F405  (names come from `from .helpers import *`)
 from __future__ import annotations
 
 import math
@@ -24,153 +13,16 @@ import re
 import statistics
 from datetime import date, datetime, timedelta
 from functools import lru_cache
-from typing import Any, Callable, Iterable
+from typing import Any, Callable
 
-from .errors import CellError, is_error
-from .values import RangeValue
-from .._runtime import aggregate_accelerator
+from .helpers import *  # noqa: F403
+from ..errors import CellError, is_error
+from ..values import RangeValue
+from ..._runtime import aggregate_accelerator
 
-# A single large numeric range is the case the optional numpy accelerator helps;
-# below this many cells the stdlib single-pass reducer is already fast enough.
+# A single large numeric range is the case the optional numpy accelerator
+# helps; below this many cells the stdlib single-pass reducer suffices.
 _ACCEL_MIN_CELLS = 4096
-
-# --- coercion helpers ------------------------------------------------------
-
-
-def _flatten(args: Iterable[Any]) -> list[Any]:
-    out: list[Any] = []
-    for a in args:
-        if isinstance(a, RangeValue):
-            out.extend(a.flat())
-        elif isinstance(a, list):
-            out.extend(_flatten(a))
-        else:
-            out.append(a)
-    return out
-
-
-def _first_error(values: Iterable[Any]) -> CellError | None:
-    for v in values:
-        if is_error(v):
-            return v
-    return None
-
-
-def _numbers_from(flat: Iterable[Any]) -> list[float]:
-    """Keep only numeric values from an already-flattened iterable (SUM/AVERAGE rules)."""
-    nums: list[float] = []
-    for v in flat:
-        if isinstance(v, bool):
-            nums.append(1.0 if v else 0.0)
-        elif isinstance(v, (int, float)):
-            nums.append(float(v))
-    return nums
-
-
-def _numbers(args: Iterable[Any]) -> list[float]:
-    """Flatten and keep only numeric values (Excel SUM/AVERAGE rules)."""
-    return _numbers_checked(args)[1]
-
-
-def _numbers_checked(args: Iterable[Any]) -> "tuple[CellError | None, list[float]]":
-    """Single traversal of the flattened arguments, returning ``(first_error,
-    numbers)``.
-
-    Fuses :func:`_flatten`, :func:`_first_error` and :func:`_numbers_from` into
-    one pass: a range is walked once and only the numeric list is built -- the
-    full value list is never materialized. For ``SUM(A1:A100000)`` that drops two
-    whole-range allocations (the flat list and a separate error scan). The
-    returned ``numbers`` and ``first_error`` are byte-for-byte what
-    ``_numbers_from(_flatten(args))`` and ``_first_error(_flatten(args))`` would
-    produce over the same arguments (same values, same flatten order), so every
-    aggregate keeps Excel's exact SUM/AVERAGE numeric and error-propagation
-    semantics."""
-    nums: list[float] = []
-    push = nums.append
-    state: list[CellError | None] = [None]
-
-    def leaf(v: Any) -> None:
-        if isinstance(v, bool):
-            push(1.0 if v else 0.0)
-        elif isinstance(v, (int, float)):
-            push(float(v))
-        elif state[0] is None and is_error(v):
-            state[0] = v
-
-    def walk(items: Iterable[Any]) -> None:
-        for a in items:
-            if isinstance(a, RangeValue):
-                for row in a.grid:
-                    for v in row:
-                        if isinstance(v, bool):
-                            push(1.0 if v else 0.0)
-                        elif isinstance(v, (int, float)):
-                            push(float(v))
-                        elif state[0] is None and is_error(v):
-                            state[0] = v
-            elif isinstance(a, list):
-                walk(a)
-            else:
-                leaf(a)
-
-    walk(args)
-    return state[0], nums
-
-
-def _flat_checked(args: Iterable[Any]) -> "tuple[CellError | None, list[Any]]":
-    """Flatten once, returning ``(first_error, flat_list)`` so callers that need
-    both an error short-circuit and the values don't flatten the args twice."""
-    flat = _flatten(args)
-    return _first_error(flat), flat
-
-
-def _as_number(v: Any) -> float:
-    if isinstance(v, bool):
-        return 1.0 if v else 0.0
-    if isinstance(v, (int, float)):
-        return float(v)
-    if v is None or v == "":
-        return 0.0
-    return float(v)  # may raise ValueError -> caught by the dispatcher
-
-
-def _try_num(v: Any) -> float | None:
-    try:
-        return _as_number(v)
-    except (TypeError, ValueError):
-        return None
-
-
-def _truthy(v: Any) -> bool:
-    if isinstance(v, bool):
-        return v
-    if isinstance(v, (int, float)):
-        return v != 0
-    if isinstance(v, str):
-        return v.strip().lower() in ("true", "1")
-    return bool(v)
-
-
-def _text(v: Any) -> str:
-    if v is None:
-        return ""
-    if isinstance(v, bool):
-        return "TRUE" if v else "FALSE"
-    if isinstance(v, float) and v.is_integer():
-        return str(int(v))
-    return str(v)
-
-
-def _equal(a: Any, b: Any) -> bool:
-    an, bn = _try_num(a), _try_num(b)
-    if an is not None and bn is not None and not isinstance(a, str) and not isinstance(b, str):
-        return an == bn
-    return _text(a).lower() == _text(b).lower()
-
-
-def _arg(args: list, i: int, default: Any = None) -> Any:
-    return args[i] if i < len(args) else default
-
 
 # --- math / aggregate ------------------------------------------------------
 
@@ -385,7 +237,7 @@ def _regress(args, fn):
     pair = _paired(args)  # (ys, xs) in argument order
     if pair is None or len(pair[0]) < 2:
         return CellError(CellError.DIV0)
-    from .science.regression import RegressionError
+    from ..science.regression import RegressionError
 
     try:
         return fn(pair[1], pair[0])  # fn(xs, ys)
@@ -394,19 +246,19 @@ def _regress(args, fn):
 
 
 def _slope(args):
-    from .science.regression import slope
+    from ..science.regression import slope
 
     return _regress(args, slope)
 
 
 def _intercept(args):
-    from .science.regression import intercept
+    from ..science.regression import intercept
 
     return _regress(args, intercept)
 
 
 def _rsq(args):
-    from .science.regression import rsq
+    from ..science.regression import rsq
 
     return _regress(args, rsq)
 
@@ -417,7 +269,7 @@ def _forecast(args):
     xs = _numbers([_arg(args, 2)])
     if x is None or len(xs) != len(ys) or len(xs) < 2:
         return CellError(CellError.VALUE)
-    from .science.regression import RegressionError, forecast
+    from ..science.regression import RegressionError, forecast
 
     try:
         return forecast(x, xs, ys)
@@ -429,7 +281,7 @@ def _forecast(args):
 
 
 def _complex_build(args):
-    from .science.complexnum import ComplexError, complexnum
+    from ..science.complexnum import ComplexError, complexnum
 
     try:
         return complexnum(_as_number(_arg(args, 0, 0)), _as_number(_arg(args, 1, 0)))
@@ -439,7 +291,7 @@ def _complex_build(args):
 
 def _c_unary(name):
     def f(args):
-        from .science import complexnum as C
+        from ..science import complexnum as C
 
         try:
             return getattr(C, name)(_text(_arg(args, 0, "0")))
@@ -451,7 +303,7 @@ def _c_unary(name):
 
 def _c_binary(name):
     def f(args):
-        from .science import complexnum as C
+        from ..science import complexnum as C
 
         try:
             return getattr(C, name)(_text(_arg(args, 0, "0")), _text(_arg(args, 1, "0")))
@@ -463,7 +315,7 @@ def _c_binary(name):
 
 def _c_variadic(name):
     def f(args):
-        from .science import complexnum as C
+        from ..science import complexnum as C
 
         try:
             return getattr(C, name)(*[_text(a) for a in _flatten(args)])
@@ -474,7 +326,7 @@ def _c_variadic(name):
 
 
 def _impower(args):
-    from .science.complexnum import im_power
+    from ..science.complexnum import im_power
 
     try:
         return im_power(_text(_arg(args, 0, "0")), _as_number(_arg(args, 1, 1)))
@@ -486,7 +338,7 @@ def _impower(args):
 
 
 def _convert(args):
-    from .science.units import UnitError, convert
+    from ..science.units import UnitError, convert
 
     val = _as_number(_arg(args, 0))
     try:
@@ -496,7 +348,7 @@ def _convert(args):
 
 
 def _interp(args):
-    from .science.interp import InterpError, linear
+    from ..science.interp import InterpError, linear
 
     x = _try_num(_arg(args, 0))
     xs = _numbers([_arg(args, 1)])
@@ -510,7 +362,7 @@ def _interp(args):
 
 
 def _rms(args):
-    from .science.signal import SignalError, rms
+    from ..science.signal import SignalError, rms
 
     nums = _numbers(args)
     if not nums:
@@ -522,7 +374,7 @@ def _rms(args):
 
 
 def _skew(args):
-    from .science.stats import StatsError, skewness
+    from ..science.stats import StatsError, skewness
 
     nums = _numbers(args)
     try:
@@ -532,7 +384,7 @@ def _skew(args):
 
 
 def _kurt(args):
-    from .science.stats import StatsError, kurtosis
+    from ..science.stats import StatsError, kurtosis
 
     nums = _numbers(args)
     try:
@@ -542,7 +394,7 @@ def _kurt(args):
 
 
 def _ttest(args):
-    from .science.stats import StatsError, t_test_ind
+    from ..science.stats import StatsError, t_test_ind
 
     a = _numbers([_arg(args, 0)])
     b = _numbers([_arg(args, 1)])
@@ -556,14 +408,14 @@ def _ttest(args):
 
 
 def _normsdist(args):
-    from .science.stats import normal_cdf
+    from ..science.stats import normal_cdf
 
     x = _try_num(_arg(args, 0))
     return CellError(CellError.VALUE) if x is None else normal_cdf(x)
 
 
 def _normsinv(args):
-    from .science.stats import StatsError, normal_ppf
+    from ..science.stats import StatsError, normal_ppf
 
     p = _try_num(_arg(args, 0))
     if p is None:
@@ -579,7 +431,7 @@ def _normsinv(args):
 
 def _normdist(args):
     """NORMDIST(x, mean, sd, cumulative) — normal CDF (cumulative) or PDF."""
-    from .science.stats import StatsError, normal_cdf, normal_pdf
+    from ..science.stats import StatsError, normal_cdf, normal_pdf
 
     x = _try_num(_arg(args, 0))
     mu = _try_num(_arg(args, 1, 0.0))
@@ -595,7 +447,7 @@ def _normdist(args):
 
 def _norminv(args):
     """NORMINV(p, mean, sd) — inverse normal CDF (quantile)."""
-    from .science.stats import StatsError, normal_ppf
+    from ..science.stats import StatsError, normal_ppf
 
     p = _try_num(_arg(args, 0))
     mu = _try_num(_arg(args, 1, 0.0))
@@ -610,7 +462,7 @@ def _norminv(args):
 
 def _tdist(args):
     """TDIST(x, df, tails) — Student-t right-tail (tails=1) or two-tail (tails=2). x>=0."""
-    from .science.stats import StatsError, t_cdf
+    from ..science.stats import StatsError, t_cdf
 
     x = _try_num(_arg(args, 0))
     df = _try_num(_arg(args, 1))
@@ -626,7 +478,7 @@ def _tdist(args):
 
 def _tinv(args):
     """TINV(p, df) — two-tailed inverse Student-t (Excel convention)."""
-    from .science.stats import StatsError, t_ppf
+    from ..science.stats import StatsError, t_ppf
 
     p = _try_num(_arg(args, 0))
     df = _try_num(_arg(args, 1))
@@ -640,7 +492,7 @@ def _tinv(args):
 
 def _fdist(args):
     """FDIST(x, df1, df2) — F-distribution right-tail probability."""
-    from .science.stats import StatsError, f_cdf
+    from ..science.stats import StatsError, f_cdf
 
     x = _try_num(_arg(args, 0))
     d1 = _try_num(_arg(args, 1))
@@ -655,7 +507,7 @@ def _fdist(args):
 
 def _finv(args):
     """FINV(p, df1, df2) — inverse of the F right-tail probability."""
-    from .science.stats import StatsError, f_ppf
+    from ..science.stats import StatsError, f_ppf
 
     p = _try_num(_arg(args, 0))
     d1 = _try_num(_arg(args, 1))
@@ -670,7 +522,7 @@ def _finv(args):
 
 def _chidist(args):
     """CHIDIST(x, df) — chi-square right-tail probability."""
-    from .science.stats import StatsError, chi_square_cdf
+    from ..science.stats import StatsError, chi_square_cdf
 
     x = _try_num(_arg(args, 0))
     df = _try_num(_arg(args, 1))
@@ -684,7 +536,7 @@ def _chidist(args):
 
 def _chiinv(args):
     """CHIINV(p, df) — inverse of the chi-square right-tail probability."""
-    from .science.stats import StatsError, chi_square_ppf
+    from ..science.stats import StatsError, chi_square_ppf
 
     p = _try_num(_arg(args, 0))
     df = _try_num(_arg(args, 1))
@@ -698,7 +550,7 @@ def _chiinv(args):
 
 def _confidence(args):
     """CONFIDENCE(alpha, sd, n) — half-width of the normal confidence interval."""
-    from .science.stats import StatsError, normal_ppf
+    from ..science.stats import StatsError, normal_ppf
 
     alpha = _try_num(_arg(args, 0))
     sd = _try_num(_arg(args, 1))
@@ -712,7 +564,7 @@ def _confidence(args):
 
 
 def _mdeterm(args):
-    from .science.matrix import MatrixError, determinant
+    from ..science.matrix import MatrixError, determinant
 
     rng = _arg(args, 0)
     if not isinstance(rng, RangeValue):
@@ -1580,269 +1432,149 @@ def _lazy_choose(nodes, ev):
     return ev(nodes[int(k)])
 
 
-# --- registries ------------------------------------------------------------
-
-FUNCTIONS: dict[str, Callable[[list], Any]] = {
-    # aggregate
-    "SUM": _sum, "SUMSQ": _sumsq, "AVERAGE": _average, "AVG": _average,
-    "COUNT": _count, "COUNTA": _counta, "COUNTBLANK": _countblank,
-    "MIN": _min, "MAX": _max, "MEDIAN": _median, "MODE": _mode, "PRODUCT": _product,
-    "STDEV": _stdev, "STDEVP": _stdevp, "VAR": _var, "VARP": _varp,
-    "GEOMEAN": _geomean, "HARMEAN": _harmean,
-    "PERCENTILE": _percentile, "QUARTILE": _quartile,
-    "CORREL": _correl, "COVAR": _covar,
-    "SLOPE": _slope, "INTERCEPT": _intercept, "RSQ": _rsq, "FORECAST": _forecast,
-    # complex numbers
-    "COMPLEX": _complex_build, "IMSUM": _c_variadic("im_sum"),
-    "IMPRODUCT": _c_variadic("im_product"), "IMSUB": _c_binary("im_sub"),
-    "IMDIV": _c_binary("im_div"), "IMABS": _c_unary("im_abs"),
-    "IMREAL": _c_unary("im_real"), "IMAGINARY": _c_unary("im_imaginary"),
-    "IMCONJUGATE": _c_unary("im_conjugate"), "IMARGUMENT": _c_unary("im_argument"),
-    "IMSQRT": _c_unary("im_sqrt"), "IMEXP": _c_unary("im_exp"), "IMLN": _c_unary("im_ln"),
-    "IMSIN": _c_unary("im_sin"), "IMCOS": _c_unary("im_cos"), "IMPOWER": _impower,
-    # matrix (scalar)
-    "MDETERM": _mdeterm,
-    # units
-    "CONVERT": _convert,
-    # signal / data
-    "INTERP": _interp, "RMS": _rms,
-    # statistics
-    "SKEW": _skew, "KURT": _kurt, "TTEST": _ttest,
-    "NORMSDIST": _normsdist, "NORMSINV": _normsinv,
-    # distribution functions (normal / t / F / chi-square) + confidence interval
-    "NORMDIST": _normdist, "NORMINV": _norminv,
-    "TDIST": _tdist, "TINV": _tinv,
-    "FDIST": _fdist, "FINV": _finv,
-    "CHIDIST": _chidist, "CHIINV": _chiinv,
-    "CONFIDENCE": _confidence,
-    "LARGE": _large, "SMALL": _small, "RANK": _rank,
-    "SUMPRODUCT": _sumproduct,
-    # conditional aggregate
-    "SUMIF": _sumif, "COUNTIF": _countif, "AVERAGEIF": _averageif,
-    # math
-    "ROUND": _round, "ROUNDUP": _roundup, "ROUNDDOWN": _rounddown,
-    "CEILING": _ceiling, "FLOOR": _floor, "TRUNC": _trunc, "INT": _int,
-    "ABS": _abs, "SIGN": _sign, "SQRT": _sqrt, "POWER": _power,
-    "EXP": _exp, "LN": _ln, "LOG": _log, "LOG10": _log10, "MOD": _mod,
-    "GCD": _gcd, "LCM": _lcm, "FACT": _fact, "PI": _pi,
-    "RAND": _rand, "RANDBETWEEN": _randbetween,
-    "SIN": _trig(math.sin), "COS": _trig(math.cos), "TAN": _trig(math.tan),
-    "ASIN": _trig(math.asin), "ACOS": _trig(math.acos), "ATAN": _trig(math.atan),
-    "ATAN2": _atan2, "DEGREES": _trig(math.degrees), "RADIANS": _trig(math.radians),
-    # lookup
-    "VLOOKUP": _vlookup, "HLOOKUP": _hlookup, "MATCH": _match, "INDEX": _index,
-    # text
-    "CONCAT": _concat, "CONCATENATE": _concat, "LEN": _len,
-    "LEFT": _left, "RIGHT": _right, "MID": _mid,
-    "UPPER": _upper, "LOWER": _lower, "PROPER": _proper, "TRIM": _trim,
-    "FIND": _find, "SEARCH": _search, "REPLACE": _replace, "SUBSTITUTE": _substitute,
-    "REPT": _rept, "EXACT": _exact, "CHAR": _char, "CODE": _code,
-    "TEXT": _text_fn, "VALUE": _value, "T": _t,
-    # date/time
-    "NOW": _now, "TODAY": _today, "DATE": _date,
-    "YEAR": _date_part(lambda d: d.year), "MONTH": _date_part(lambda d: d.month),
-    "DAY": _date_part(lambda d: d.day), "HOUR": _date_part(lambda d: d.hour),
-    "MINUTE": _date_part(lambda d: d.minute), "SECOND": _date_part(lambda d: d.second),
-    "WEEKDAY": _weekday, "DATEDIF": _datedif, "EDATE": _edate, "DAYS": _days,
-    # logical / info
-    "AND": _and, "OR": _or, "XOR": _xor, "NOT": _not, "TRUE": _true, "FALSE": _false,
-    "NA": _na, "ISBLANK": _isblank, "ISNUMBER": _isnumber, "ISTEXT": _istext,
-    "ISLOGICAL": _islogical, "ISERROR": _iserror,
-}
-
-LAZY_FUNCTIONS: dict[str, Callable] = {
-    "IF": _lazy_if,
-    "IFERROR": _lazy_iferror,
-    "IFNA": _lazy_ifna,
-    "IFS": _lazy_ifs,
-    "SWITCH": _lazy_switch,
-    "CHOOSE": _lazy_choose,
-}
 
 
-# --- RF / ham-radio functions (backed by core.science.rf) ------------------
-# SI base units (Hz, m, W, H, F); see docs/rf-toolkit.md. The GUI presents
-# metric + imperial, but the formula layer stays unit-neutral.
-
-_RF_REQUIRED = object()
-
-
-def _rf_numeric(name: str, spec: tuple):
-    """Wrap a numeric ``core.science.rf`` function for the formula layer.
-
-    ``spec`` is one entry per positional argument: ``_RF_REQUIRED`` for a required
-    arg, or a default value for an optional one. Missing/blank required args →
-    ``#VALUE!``; domain errors (rf raises ``ValueError``) → ``#NUM!``.
-    """
-    def wrapper(args):
-        from .science import rf as R
-
-        vals = []
-        for i, dflt in enumerate(spec):
-            raw = _arg(args, i, None)
-            if raw is None or raw == "":
-                if dflt is _RF_REQUIRED:
-                    return CellError(CellError.VALUE)
-                vals.append(dflt)
-            else:
-                try:
-                    vals.append(_as_number(raw))
-                except (ValueError, TypeError):
-                    return CellError(CellError.VALUE)
-        try:
-            return getattr(R, name)(*vals)
-        except (ValueError, TypeError, ZeroDivisionError, OverflowError):
-            return CellError(CellError.NUM)
-    return wrapper
-
-
-def _rf_gridsquare(args):
-    from .science import rf as R
-    try:
-        prec = int(_as_number(_arg(args, 2, 6)))
-        return R.grid_square(_as_number(_arg(args, 0)), _as_number(_arg(args, 1)), prec)
-    except (ValueError, TypeError):
-        return CellError(CellError.NUM)
-
-
-def _rf_grid_component(idx: int):
-    def wrapper(args):
-        from .science import rf as R
-        try:
-            return R.grid_to_latlon(_text(_arg(args, 0)))[idx]
-        except (ValueError, TypeError):
-            return CellError(CellError.NUM)
-    return wrapper
-
-
-def _rf_grid_pair(fn: str):
-    def wrapper(args):
-        from .science import rf as R
-        try:
-            return getattr(R, fn)(_text(_arg(args, 0)), _text(_arg(args, 1)))
-        except (ValueError, TypeError):
-            return CellError(CellError.NUM)
-    return wrapper
-
-
-def _rf_hamband(args):
-    from .science import rf_bands as B
-    try:
-        name = B.band_for_frequency(_as_number(_arg(args, 0)))
-    except (ValueError, TypeError):
-        return CellError(CellError.VALUE)
-    return name if name is not None else CellError(CellError.NA)
-
-
-def _rf_dxcc(args):
-    from .science import dxcc
-    entity = dxcc.entity_for_call(_text(_arg(args, 0)))
-    return entity if entity is not None else CellError(CellError.NA)
-
-
-def _rf_ctcss_tone(args):
-    from .science import rf_bands as B
-    try:
-        return B.ctcss_tone(int(_as_number(_arg(args, 0))))
-    except (ValueError, TypeError):
-        return CellError(CellError.NUM)
-
-
-def _rf_nearest_ctcss(args):
-    from .science import rf_bands as B
-    try:
-        return B.nearest_ctcss(_as_number(_arg(args, 0)))
-    except (ValueError, TypeError):
-        return CellError(CellError.VALUE)
-
-
-def _ant_z_component(part: str):
-    def wrapper(args):
-        from .science import antenna_impedance as A
-        try:
-            length = _as_number(_arg(args, 0))
-            rad = _arg(args, 1, None)
-            radius = _as_number(rad) if rad not in (None, "") else 1e-4
-            z = A.dipole_input_impedance(length, radius)
-        except (ValueError, TypeError, ZeroDivisionError):
-            return CellError(CellError.NUM)
-        return z.real if part == "r" else z.imag
-    return wrapper
-
-
-def _ant_radres(args):
-    from .science import antenna_impedance as A
-    try:
-        return A.radiation_resistance(_as_number(_arg(args, 0)))
-    except (ValueError, TypeError):
-        return CellError(CellError.NUM)
-
-
-def _ant_resonant(args):
-    from .science import antenna_impedance as A
-    try:
-        rad = _arg(args, 0, None)
-        radius = _as_number(rad) if rad not in (None, "") else 1e-4
-        return A.resonant_length(radius)
-    except (ValueError, TypeError):
-        return CellError(CellError.NUM)
-
-
-_R = _RF_REQUIRED
-FUNCTIONS.update({
-    "DBM2W": _rf_numeric("dbm_to_w", (_R,)),
-    "W2DBM": _rf_numeric("w_to_dbm", (_R,)),
-    "DBW2W": _rf_numeric("dbw_to_w", (_R,)),
-    "W2DBW": _rf_numeric("w_to_dbw", (_R,)),
-    "DB2RATIO": _rf_numeric("db_to_ratio", (_R,)),
-    "RATIO2DB": _rf_numeric("ratio_to_db", (_R,)),
-    "DBADD": _rf_numeric("db_add", (_R, _R)),
-    "DBUV2DBM": _rf_numeric("dbuv_to_dbm", (_R, 50.0)),
-    "SUNIT2DBM": _rf_numeric("s_unit_to_dbm", (_R,)),
-    "NOISEFLOOR": _rf_numeric("noise_floor_dbm", (_R, 290.0)),
-    "NF2NT": _rf_numeric("nf_to_noise_temp", (_R, 290.0)),
-    "NT2NF": _rf_numeric("noise_temp_to_nf", (_R, 290.0)),
-    "WAVELENGTH": _rf_numeric("wavelength", (_R, 1.0)),
-    "WL2FREQ": _rf_numeric("freq_from_wavelength", (_R, 1.0)),
-    "DIPOLELEN": _rf_numeric("dipole_length", (_R, 0.95)),
-    "MONOPOLELEN": _rf_numeric("monopole_length", (_R, 0.95)),
-    "XL": _rf_numeric("reactance_inductive", (_R, _R)),
-    "XC": _rf_numeric("reactance_capacitive", (_R, _R)),
-    "RESFREQ": _rf_numeric("resonant_freq", (_R, _R)),
-    "VSWR": _rf_numeric("vswr_from_z", (_R, 50.0)),
-    "VSWRG": _rf_numeric("vswr_from_gamma", (_R,)),
-    "REFLCOEF": _rf_numeric("reflection_coefficient", (_R, 50.0)),
-    "RETURNLOSS": _rf_numeric("return_loss_db", (_R,)),
-    "MISMATCHLOSS": _rf_numeric("mismatch_loss_db", (_R,)),
-    "VSWR2GAMMA": _rf_numeric("vswr_to_gamma", (_R,)),
-    "Z0COAX": _rf_numeric("z0_coax", (_R, _R, 1.0)),
-    "VELFACTOR": _rf_numeric("velocity_factor", (_R,)),
-    "FSPL": _rf_numeric("fspl_db", (_R, _R)),
-    "FRIIS": _rf_numeric("friis_rx_dbm", (_R, _R, _R, _R, _R)),
-    "EIRP": _rf_numeric("eirp_dbm", (_R, _R, 0.0)),
-    "FRESNEL": _rf_numeric("fresnel_radius", (_R, _R, _R, 1)),
-    "RADIOHORIZON": _rf_numeric("radio_horizon_km", (_R, 0.0)),
-    "SKINDEPTH": _rf_numeric("skin_depth", (_R, 5.8e7, 1.0)),
-    "DBI2DBD": _rf_numeric("dbi_to_dbd", (_R,)),
-    "DBD2DBI": _rf_numeric("dbd_to_dbi", (_R,)),
-    "GRIDSQUARE": _rf_gridsquare,
-    "GRIDLAT": _rf_grid_component(0),
-    "GRIDLON": _rf_grid_component(1),
-    "GRIDDIST": _rf_grid_pair("grid_distance_km"),
-    "GRIDBEARING": _rf_grid_pair("grid_bearing_deg"),
-    "HAMBAND": _rf_hamband,
-    "DXCC": _rf_dxcc,
-    "CTCSSTONE": _rf_ctcss_tone,
-    "NEARESTCTCSS": _rf_nearest_ctcss,
-    "DIPOLER": _ant_z_component("r"),
-    "DIPOLEX": _ant_z_component("x"),
-    "RADRESIST": _ant_radres,
-    "RESONANTLEN": _ant_resonant,
-})
-
-# Modern array functions (XLOOKUP/UNIQUE/SORT/FILTER/SEQUENCE) live in their own
-# module and register themselves here. They return plain lists (no grid "spill"),
-# which compose inside aggregates via _flatten.
-from . import arrayfuncs as _arrayfuncs  # noqa: E402
-
-_arrayfuncs.register(FUNCTIONS)
+__all__ = [
+    "_ACCEL_MIN_CELLS",
+    "_try_accel",
+    "_sum",
+    "_sumsq",
+    "_average",
+    "_count",
+    "_counta",
+    "_countblank",
+    "_min",
+    "_max",
+    "_median",
+    "_mode",
+    "_product",
+    "_stdev",
+    "_stdevp",
+    "_var",
+    "_varp",
+    "_geomean",
+    "_harmean",
+    "_percentile",
+    "_quartile",
+    "_percentile_inc",
+    "_paired",
+    "_correl",
+    "_covar",
+    "_regress",
+    "_slope",
+    "_intercept",
+    "_rsq",
+    "_forecast",
+    "_complex_build",
+    "_c_unary",
+    "_c_binary",
+    "_c_variadic",
+    "_impower",
+    "_convert",
+    "_interp",
+    "_rms",
+    "_skew",
+    "_kurt",
+    "_ttest",
+    "_normsdist",
+    "_normsinv",
+    "_normdist",
+    "_norminv",
+    "_tdist",
+    "_tinv",
+    "_fdist",
+    "_finv",
+    "_chidist",
+    "_chiinv",
+    "_confidence",
+    "_mdeterm",
+    "_round",
+    "_roundup",
+    "_rounddown",
+    "_round_dir",
+    "_ceiling",
+    "_floor",
+    "_trunc",
+    "_int",
+    "_abs",
+    "_sign",
+    "_sqrt",
+    "_power",
+    "_exp",
+    "_ln",
+    "_log",
+    "_log10",
+    "_mod",
+    "_gcd",
+    "_lcm",
+    "_fact",
+    "_pi",
+    "_sumproduct",
+    "_large",
+    "_small",
+    "_rank",
+    "_rand",
+    "_randbetween",
+    "_trig",
+    "_atan2",
+    "_make_predicate",
+    "_cmp",
+    "_wildcard_re",
+    "_countif",
+    "_sumif",
+    "_averageif",
+    "_vlookup",
+    "_hlookup",
+    "_search_vector",
+    "_match",
+    "_index",
+    "_concat",
+    "_len",
+    "_left",
+    "_right",
+    "_mid",
+    "_upper",
+    "_lower",
+    "_proper",
+    "_trim",
+    "_find",
+    "_search",
+    "_replace",
+    "_substitute",
+    "_rept",
+    "_exact",
+    "_char",
+    "_code",
+    "_text_fn",
+    "_fmt_decimals",
+    "_value",
+    "_t",
+    "_parse_date",
+    "_now",
+    "_today",
+    "_date",
+    "_date_part",
+    "_weekday",
+    "_datedif",
+    "_edate",
+    "_days",
+    "_days_in_month",
+    "_and",
+    "_or",
+    "_xor",
+    "_not",
+    "_true",
+    "_false",
+    "_na",
+    "_isblank",
+    "_isnumber",
+    "_istext",
+    "_islogical",
+    "_iserror",
+    "_lazy_if",
+    "_lazy_iferror",
+    "_lazy_ifna",
+    "_lazy_ifs",
+    "_lazy_switch",
+    "_lazy_choose",
+]
