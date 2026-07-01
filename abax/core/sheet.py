@@ -11,6 +11,7 @@ layers above it.
 
 from __future__ import annotations
 
+import re
 from typing import Any, Iterator
 
 from .cells import Cell
@@ -18,6 +19,43 @@ from .errors import CellError, FormulaError
 from .evaluator import EvalContext, evaluate
 from .parser import parse
 from .reference import parse_a1, to_a1
+from .spill import to_grid
+
+# Functions that can evaluate to a dynamic array (and therefore spill). A formula
+# is a *spill candidate* if it calls any of these; only candidates are re-walked
+# during the spill pass, so a sheet with no array formulas pays nothing.
+ARRAY_FUNCTIONS = frozenset({
+    "UNIQUE", "SORT", "SORTBY", "FILTER", "SEQUENCE", "RANDARRAY", "TRANSPOSE",
+    "VSTACK", "HSTACK", "TAKE", "DROP", "CHOOSEROWS", "CHOOSECOLS", "TOROW",
+    "TOCOL", "EXPAND", "WRAPROWS", "WRAPCOLS",
+    # Array-returning statistics (Wave H) that also spill.
+    "FREQUENCY", "MODE.MULT", "TREND", "GROWTH", "LINEST", "LOGEST",
+    # Matrix functions that spill.
+    "MMULT", "MINVERSE", "MUNIT",
+})
+
+
+# A spill-range reference like ``A1#`` / ``$A$1#`` (the '#' follows a row digit,
+# which never happens in an error literal such as ``#NAME?``).
+_SPILL_REF_RE = re.compile(r"[0-9]#")
+
+# A range that is an operand of an operator broadcasts to an array (e.g.
+# ``A1:A3*2``, ``2+A1:A3``, ``A1:A3>9``) — but not a bare ``SUM(A1:A3)``, where the
+# range sits between a paren/comma and is not adjacent to an operator.
+_RANGE = r"\$?[A-Za-z]+\$?[0-9]+:\$?[A-Za-z]+\$?[0-9]+"
+_ARROP = r"[-+*/^&%<>=]"
+_BROADCAST_RE = re.compile(rf"{_ARROP}\s*{_RANGE}|{_RANGE}\s*{_ARROP}")
+
+
+def _is_array_candidate(formula_upper: str) -> bool:
+    """Cheap test: could an upper-cased formula body evaluate to an array — i.e.
+    does it call an array function, use a spill (``A1#``) reference, an inline
+    array constant (``{...}``), or apply an operator to a range (broadcasting)?"""
+    if "{" in formula_upper:
+        return True
+    if _SPILL_REF_RE.search(formula_upper) or _BROADCAST_RE.search(formula_upper):
+        return True
+    return any(fn + "(" in formula_upper for fn in ARRAY_FUNCTIONS)
 
 
 class Sheet:
@@ -42,6 +80,18 @@ class Sheet:
         self._rast_cache: dict[tuple[int, int], tuple[int, Any]] = {}
         self._value_cache: dict[tuple[int, int], Any] = {}
         self._computing: set[tuple[int, int]] = set()
+        # --- dynamic-array spill state ---
+        # Formula cells that may produce an array (maintained on every edit).
+        self._anchor_cells: set[tuple[int, int]] = set()
+        # Every cell covered by a spill -> its anchor cell (incl. the anchor).
+        self._spill_anchor: dict[tuple[int, int], tuple[int, int]] = {}
+        # Anchor cell -> the spilled 2-D grid (list of rows).
+        self._spill_grid: dict[tuple[int, int], list] = {}
+        # Anchor cells whose spill is blocked (render as #SPILL!).
+        self._spill_error: set[tuple[int, int]] = set()
+        # Recompute the spill map lazily, once per invalidation cycle.
+        self._spill_dirty: bool = True
+        self._spilling: bool = False  # reentrancy guard for the spill pass
 
     # --- editing ----------------------------------------------------------
 
@@ -58,6 +108,12 @@ class Sheet:
             self._cells[key] = Cell(raw)
         self._ast_cache.pop(key, None)
         self._rast_cache.pop(key, None)
+        # Track whether this cell is a dynamic-array anchor candidate.
+        if raw.startswith("=") and _is_array_candidate(raw.upper()):
+            self._anchor_cells.add(key)
+        else:
+            self._anchor_cells.discard(key)
+        self._spill_dirty = True
         # An edit can change any dependent's value. Within a workbook, dependents
         # may live on *other* sheets (cross-sheet refs), so clear every sheet's
         # cache; standalone sheets just clear their own.
@@ -74,13 +130,24 @@ class Sheet:
         when populating a fresh sheet (profiled ~3-5× faster than per-cell setting).
         """
         cells = self._cells
+        anchors = self._anchor_cells
+        # Detect array-formula anchors inline (same rule as set_cell) rather than
+        # rescanning every cell afterwards — the extra scan dominated bulk loads
+        # of literal-only data (CSV/Parquet), where no cell is ever a candidate.
         for row, col, raw in items:
+            key = (row, col)
             if raw == "":
-                cells.pop((row, col), None)
+                cells.pop(key, None)
+                anchors.discard(key)
             else:
-                cells[(row, col)] = Cell(raw)
+                cells[key] = Cell(raw)
+                if raw[0] == "=" and _is_array_candidate(raw.upper()):
+                    anchors.add(key)
+                else:
+                    anchors.discard(key)
         self._ast_cache.clear()
         self._rast_cache.clear()
+        self._spill_dirty = True
         if self.workbook is not None:
             self.workbook.invalidate_caches()
         else:
@@ -181,6 +248,7 @@ class Sheet:
             sh._ast_cache.clear()
             sh._rast_cache.clear()
             sh._value_cache.clear()
+            sh._rebuild_anchor_cells()
 
     # --- reading ----------------------------------------------------------
 
@@ -204,17 +272,55 @@ class Sheet:
 
     def get_value(self, row: int, col: int) -> Any:
         key = (row, col)
+        if self._spill_dirty:
+            self._sync_spills()
         if key in self._value_cache:
             return self._value_cache[key]
-        if key in self._computing:
-            return CellError(CellError.CIRC)
         cell = self._cells.get(key)
         if cell is None:
+            # Empty cell — but a neighbouring array may have spilled onto it.
+            anchor = self._spill_anchor.get(key)
+            if anchor is not None and anchor != key:
+                val = self._spill_element(anchor, key)
+                self._value_cache[key] = val
+                return val
             return None
         if not cell.is_formula:
             val = cell.literal()
             self._value_cache[key] = val
             return val
+        # Formula cell. If it's a spill anchor, its value is the top-left of the
+        # spilled grid (or #SPILL! when the spill is blocked).
+        if key in self._spill_error:
+            val = CellError(CellError.SPILL)
+            self._value_cache[key] = val
+            return val
+        grid = self._spill_grid.get(key)
+        if grid is not None:
+            val = grid[0][0]
+            self._value_cache[key] = val
+            return val
+        # Scalar result (the common case).
+        raw = self._compute_formula(row, col, cell)
+        if isinstance(raw, list):
+            # An array from a formula the candidate test missed: register it for
+            # the next pass and, for now, surface its top-left value.
+            self._anchor_cells.add(key)
+            self._spill_dirty = True
+            g = to_grid(raw)
+            val = g[0][0] if g else CellError(CellError.CALC)
+        else:
+            val = raw
+        self._value_cache[key] = val
+        return val
+
+    def _compute_formula(self, row: int, col: int, cell: Cell) -> Any:
+        """Evaluate a formula cell to its raw result (a scalar, an error, or —
+        for a dynamic-array formula — a Python ``list``). No spill handling and
+        no value caching; :meth:`get_value` and the spill pass layer those on."""
+        key = (row, col)
+        if key in self._computing:
+            return CellError(CellError.CIRC)
         self._computing.add(key)
         try:
             ast = self._ast_cache.get(key)
@@ -232,15 +338,161 @@ class Sheet:
                 else:
                     ast = _resolve_names(ast, names)
                     self._rast_cache[key] = (ver, ast)
-            val = evaluate(ast, self._resolve, EvalContext(self._resolve, row, col))
+            val = evaluate(ast, self._resolve,
+                           EvalContext(self._resolve, row, col, self._resolve_spill))
         except FormulaError:
             val = CellError(CellError.NAME)
         except RecursionError:
             val = CellError(CellError.CIRC)
         finally:
             self._computing.discard(key)
-        self._value_cache[key] = val
         return val
+
+    def _resolve_spill(self, sheet_name: str, row: int, col: int) -> "list | None":
+        """Spill-range lookup for the ``A1#`` operator: the spilled grid anchored
+        at ``(row, col)`` on ``sheet_name`` (this sheet if empty), or None."""
+        target = self
+        if sheet_name:
+            target = self.workbook.get_sheet(sheet_name) if self.workbook is not None else None
+            if target is None:
+                return None
+        if target._spill_dirty:
+            target._sync_spills()
+        return target._spill_grid.get((row, col))
+
+    # --- dynamic-array spill ---------------------------------------------
+
+    def _rebuild_anchor_cells(self) -> None:
+        """Rescan every cell for array-formula anchors (bulk load / restructure)."""
+        self._anchor_cells = {
+            (r, c) for (r, c), cell in self._cells.items()
+            if cell.raw.startswith("=") and _is_array_candidate(cell.raw.upper())
+        }
+        self._spill_dirty = True
+
+    def _sync_spills(self) -> None:
+        """Recompute the spill map if it is dirty (memoized per invalidation)."""
+        if self._spilling:
+            return
+        self._spill_dirty = False
+        self._spill_anchor = {}
+        self._spill_grid = {}
+        self._spill_error = set()
+        if not self._anchor_cells:
+            return
+        self._spilling = True
+        try:
+            # Row-major order so an upper-left anchor claims contested cells first.
+            for key in sorted(self._anchor_cells):
+                cell = self._cells.get(key)
+                if cell is None or not cell.is_formula:
+                    continue
+                raw = self._compute_formula(key[0], key[1], cell)
+                if not isinstance(raw, list):
+                    continue
+                if not raw:  # empty array (e.g. FILTER with no matches) -> #CALC!
+                    self._spill_grid[key] = [[CellError(CellError.CALC)]]
+                    self._spill_anchor[key] = key
+                    continue
+                grid = to_grid(raw)
+                if grid is not None:
+                    self._register_spill(key[0], key[1], grid)
+        finally:
+            self._spilling = False
+
+    def _register_spill(self, r0: int, c0: int, grid: list) -> None:
+        nr = len(grid)
+        nc = len(grid[0]) if grid else 0
+        anchor = (r0, c0)
+        if nr <= 1 and nc <= 1:  # a 1x1 array is just a value; no region to claim
+            self._spill_grid[anchor] = grid
+            self._spill_anchor[anchor] = anchor
+            return
+        # Collision: any target cell already holding real content or claimed by
+        # an earlier spill blocks this one entirely (Excel's #SPILL!).
+        for r in range(r0, r0 + nr):
+            for c in range(c0, c0 + nc):
+                if (r, c) == anchor:
+                    continue
+                if self._cells.get((r, c)) is not None or (r, c) in self._spill_anchor:
+                    self._spill_error.add(anchor)
+                    return
+        self._spill_grid[anchor] = grid
+        for i in range(nr):
+            for j in range(nc):
+                self._spill_anchor[(r0 + i, c0 + j)] = anchor
+
+    def _spill_element(self, anchor: tuple[int, int], key: tuple[int, int]) -> Any:
+        grid = self._spill_grid.get(anchor)
+        if grid is None:
+            return None
+        i, j = key[0] - anchor[0], key[1] - anchor[1]
+        if 0 <= i < len(grid) and 0 <= j < len(grid[i]):
+            return grid[i][j]
+        return None
+
+    def is_spill_anchor(self, row: int, col: int) -> bool:
+        """True if ``(row, col)`` is the anchor of a multi-cell spill."""
+        if self._spill_dirty:
+            self._sync_spills()
+        grid = self._spill_grid.get((row, col))
+        return grid is not None and (len(grid) > 1 or (bool(grid) and len(grid[0]) > 1))
+
+    def is_spilled_into(self, row: int, col: int) -> bool:
+        """True if ``(row, col)`` is a non-anchor cell filled by a spill."""
+        if self._spill_dirty:
+            self._sync_spills()
+        anchor = self._spill_anchor.get((row, col))
+        return anchor is not None and anchor != (row, col)
+
+    def in_spill(self, row: int, col: int) -> bool:
+        """True if ``(row, col)`` belongs to any multi-cell spill (anchor or not)."""
+        if self._spill_dirty:
+            self._sync_spills()
+        anchor = self._spill_anchor.get((row, col))
+        if anchor is None:
+            return False
+        grid = self._spill_grid.get(anchor)
+        return grid is not None and (len(grid) > 1 or (bool(grid) and len(grid[0]) > 1))
+
+    def spill_region(self, row: int, col: int) -> "tuple[int, int, int, int] | None":
+        """``(r0, c0, r1, c1)`` region for the anchor at ``(row, col)``, or None."""
+        if self._spill_dirty:
+            self._sync_spills()
+        grid = self._spill_grid.get((row, col))
+        if grid is None:
+            return None
+        nr, nc = len(grid), (len(grid[0]) if grid else 0)
+        if nr <= 1 and nc <= 1:
+            return None
+        return (row, col, row + nr - 1, col + nc - 1)
+
+    def spill_edges(self, row: int, col: int) -> frozenset:
+        """Which region borders ('top'/'bottom'/'left'/'right') pass through this
+        cell — for painting the dashed spill outline. Empty if not in a spill."""
+        if self._spill_dirty:
+            self._sync_spills()
+        anchor = self._spill_anchor.get((row, col))
+        if anchor is None:
+            return frozenset()
+        grid = self._spill_grid.get(anchor)
+        if grid is None:
+            return frozenset()
+        nr, nc = len(grid), (len(grid[0]) if grid else 0)
+        if nr <= 1 and nc <= 1:
+            return frozenset()
+        r0, c0 = anchor
+        r1, c1 = r0 + nr - 1, c0 + nc - 1
+        edges = set()
+        if row == r0:
+            edges.add("top")
+        if row == r1:
+            edges.add("bottom")
+        if col == c0:
+            edges.add("left")
+        if col == c1:
+            edges.add("right")
+        return frozenset(edges)
 
     def _resolve(self, sheet_name: str, row: int, col: int) -> Any:
         """Resolver passed to the evaluator. Empty sheet_name = this sheet."""
@@ -280,7 +532,13 @@ class Sheet:
     # --- bounds / iteration ----------------------------------------------
 
     def used_bounds(self) -> tuple[int, int]:
-        """``(n_rows, n_cols)`` covering all populated cells (0,0 if empty)."""
+        """``(n_rows, n_cols)`` covering all populated cells (0,0 if empty).
+
+        Spilled array cells count toward the extent so the grid/exports show the
+        whole spill, even though only the anchor's source formula is stored.
+        """
+        if self._anchor_cells and self._spill_dirty:
+            self._sync_spills()
         if not self._cells:
             return 0, 0
         # Single pass over the keys: two `max()` generators were walking the whole
@@ -292,6 +550,13 @@ class Sheet:
                 max_row = r
             if c > max_col:
                 max_col = c
+        for (ar, ac), grid in self._spill_grid.items():
+            er = ar + len(grid) - 1
+            ec = ac + (len(grid[0]) if grid else 1) - 1
+            if er > max_row:
+                max_row = er
+            if ec > max_col:
+                max_col = ec
         return max_row + 1, max_col + 1
 
     def iter_cells(self) -> Iterator[tuple[int, int, Cell]]:
@@ -356,6 +621,7 @@ class Sheet:
     def recalculate(self) -> None:
         """Force a full recompute (clears caches, evaluates every cell)."""
         self._value_cache.clear()
+        self._spill_dirty = True
         for r, c in list(self._cells):
             self.get_value(r, c)
 

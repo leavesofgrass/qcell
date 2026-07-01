@@ -111,7 +111,13 @@ def _render(stdscr, curses, editor, attr, cap, colors, cond_attr) -> None:
                 a = attr("cursor") | curses.A_REVERSE
             else:
                 ca = cond_attr(colors.get((r, c)))
-                a = ca if ca is not None else attr("lcd")
+                if ca is not None:
+                    a = ca
+                elif sheet.in_spill(r, c):
+                    # Dynamic-array spill range: tint it to echo the GUI's outline.
+                    a = attr("accent")
+                else:
+                    a = attr("lcd")
             _addstr(stdscr, screen_r, x, text[: max_x - x], a)
             x += col_w + 1
 

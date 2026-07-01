@@ -27,12 +27,16 @@ class EvalContext:
     same ``(sheet, r, c) -> value`` the evaluator uses; ``eval(node)`` evaluates an
     argument node on demand (carrying this context onward)."""
 
-    __slots__ = ("resolver", "row", "col")
+    __slots__ = ("resolver", "row", "col", "spill")
 
-    def __init__(self, resolver: Resolver, row: int, col: int) -> None:
+    def __init__(self, resolver: Resolver, row: int, col: int, spill: Any = None) -> None:
         self.resolver = resolver
         self.row = row
         self.col = col
+        # Optional ``(sheet, row, col) -> grid | None`` lookup for the spill
+        # range anchored at a cell (backs the ``A1#`` operator). None outside a
+        # Sheet (e.g. bare-evaluator unit tests) -> ``A1#`` yields #REF!.
+        self.spill = spill
 
     def eval(self, node: Any) -> Any:
         return evaluate(node, self.resolver, self)
@@ -111,6 +115,17 @@ def evaluate(node: Any, resolver: Resolver, ctx: "EvalContext | None" = None) ->
             [resolver(node.sheet, r, c) for c in range(c1, c2 + 1)] for r in range(r1, r2 + 1)
         ]
         return RangeValue(grid)
+    if isinstance(node, A.SpillRef):
+        # ``A1#`` — the array that spilled from anchor A1. Resolve via the
+        # context's spill lookup; return a fresh list-of-lists so it composes in
+        # aggregates and *re-spills* when it is a cell's top-level result.
+        if ctx is None or ctx.spill is None:
+            return CellError(CellError.REF)
+        row, col = parse_a1(node.text)
+        grid = ctx.spill(node.sheet, row, col)
+        if not grid:
+            return CellError(CellError.REF)
+        return [list(r) for r in grid]
     if isinstance(node, A.Name):
         if node.text == "TRUE":
             return True
@@ -118,7 +133,14 @@ def evaluate(node: Any, resolver: Resolver, ctx: "EvalContext | None" = None) ->
             return False
         return CellError(CellError.NAME, node.text)
     if isinstance(node, A.Unary):
+        if node.op == "@":
+            return _implicit_intersection(node.operand, resolver, ctx)
         val = evaluate(node.operand, resolver, ctx)
+        if isinstance(val, (list, RangeValue)):
+            # Unary +/- broadcasts element-wise over an array.
+            from .spill import as_grid
+            sign = -1.0 if node.op == "-" else 1.0
+            return [[_unary_num(v, sign) for v in row] for row in as_grid(val)]
         if is_error(val):
             return val
         n = _num(val)
@@ -127,16 +149,58 @@ def evaluate(node: Any, resolver: Resolver, ctx: "EvalContext | None" = None) ->
         return -n if node.op == "-" else n
     if isinstance(node, A.Error):
         return CellError(node.code)
+    if isinstance(node, A.ArrayLiteral):
+        # An inline array constant -> a 2-D list (spills / composes).
+        return [[evaluate(cell, resolver, ctx) for cell in row] for row in node.rows]
     raise FormulaError(f"cannot evaluate node: {node!r}")
+
+
+def _implicit_intersection(operand: Any, resolver: Resolver, ctx: "EvalContext | None") -> Any:
+    """The ``@`` operator: reduce an array/range to the single value that lines up
+    with the calling cell. For a range it uses the caller's row/column (Excel's
+    implicit intersection); for any other array it takes the first element; a
+    scalar is returned unchanged."""
+    if isinstance(operand, A.Range) and ctx is not None:
+        r1, c1, r2, c2 = parse_range(operand.text)
+        row, col = ctx.row, ctx.col
+        if c1 == c2:  # a single column — align on the caller's row
+            return (resolver(operand.sheet, row, c1) if r1 <= row <= r2
+                    else CellError(CellError.VALUE))
+        if r1 == r2:  # a single row — align on the caller's column
+            return (resolver(operand.sheet, r1, col) if c1 <= col <= c2
+                    else CellError(CellError.VALUE))
+        if r1 <= row <= r2 and c1 <= col <= c2:  # 2-D — intersect on both axes
+            return resolver(operand.sheet, row, col)
+        return CellError(CellError.VALUE)
+    val = evaluate(operand, resolver, ctx)
+    if isinstance(val, RangeValue):
+        return val.grid[0][0] if val.grid and val.grid[0] else CellError(CellError.VALUE)
+    if isinstance(val, list):
+        from .spill import to_grid
+        grid = to_grid(val)
+        return grid[0][0] if grid else CellError(CellError.VALUE)
+    return val
+
+
+def _unary_num(v: Any, sign: float) -> Any:
+    if is_error(v):
+        return v
+    n = _num(v)
+    return n if is_error(n) else sign * n
 
 
 def _eval_binary(node: A.Binary, resolver: Resolver, ctx: "EvalContext | None" = None) -> Any:
     op = node.op
     left = evaluate(node.left, resolver, ctx)
     right = evaluate(node.right, resolver, ctx)
-    # A range or array used as a scalar operand is an error.
+    # A range or array operand broadcasts element-wise (Excel dynamic arrays):
+    # the result is a 2-D grid that spills / composes.
     if isinstance(left, (list, RangeValue)) or isinstance(right, (list, RangeValue)):
-        return CellError(CellError.VALUE)
+        return _broadcast_binary(op, left, right)
+    return _binary_scalar(op, left, right)
+
+
+def _binary_scalar(op: str, left: Any, right: Any) -> Any:
     if is_error(left):
         return left
     if is_error(right):
@@ -166,6 +230,32 @@ def _eval_binary(node: A.Binary, resolver: Resolver, ctx: "EvalContext | None" =
         except (ValueError, OverflowError):
             return CellError(CellError.NUM)
     raise FormulaError(f"unknown operator: {op}")
+
+
+def _broadcast_binary(op: str, left: Any, right: Any) -> Any:
+    """Apply a binary operator element-wise across array operands, broadcasting a
+    row/column/scalar against the other operand (numpy-style: a dimension must be
+    equal on both sides or 1). Returns a 2-D list (spills / composes) or #VALUE!
+    when the shapes are not broadcastable."""
+    from .spill import as_grid
+
+    lg, rg = as_grid(left), as_grid(right)
+    lr, lc = len(lg), (len(lg[0]) if lg else 0)
+    rr, rc = len(rg), (len(rg[0]) if rg else 0)
+    if lc == 0 or rc == 0:
+        return CellError(CellError.VALUE)
+    if not ((lr == rr or lr == 1 or rr == 1) and (lc == rc or lc == 1 or rc == 1)):
+        return CellError(CellError.VALUE)
+    nr, nc = max(lr, rr), max(lc, rc)
+    out = []
+    for i in range(nr):
+        li, ri = (i if lr != 1 else 0), (i if rr != 1 else 0)
+        row = []
+        for j in range(nc):
+            lj, rj = (j if lc != 1 else 0), (j if rc != 1 else 0)
+            row.append(_binary_scalar(op, lg[li][lj], rg[ri][rj]))
+        out.append(row)
+    return out
 
 
 def _eval_func(node: A.Func, resolver: Resolver, ctx: "EvalContext | None" = None) -> Any:

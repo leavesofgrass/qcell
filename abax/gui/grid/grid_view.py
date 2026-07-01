@@ -19,17 +19,22 @@ from __future__ import annotations
 from .._qtcompat import (
     QAbstractItemDelegate,
     QAbstractItemView,
+    QColor,
     QComboBox,
     QEvent,
     QItemSelection,
     QItemSelectionModel,
     QLineEdit,
+    QPen,
     QStyledItemDelegate,
     Qt,
     QTableView,
     QTableWidgetSelectionRange,
     pyqtSignal,
 )
+
+# Excel-style dynamic-array spill outline colour (a calm blue).
+_SPILL_COLOR = "#3b82f6"
 
 _VIM_KEYS = frozenset("jkhlgG/")
 
@@ -48,6 +53,30 @@ class GridDelegate(QStyledItemDelegate):
     def __init__(self, window) -> None:
         super().__init__(window)
         self._win = window
+
+    def paint(self, painter, option, index):  # noqa: N802 (Qt override)
+        """Draw the cell, then trace the dashed spill outline on any region edge
+        passing through it — the visual cue that these values came from one
+        dynamic-array formula (only the anchor is editable)."""
+        super().paint(painter, option, index)
+        sheet = self._win._doc.workbook.sheet
+        edges = sheet.spill_edges(index.row(), index.column())
+        if not edges:
+            return
+        painter.save()
+        pen = QPen(QColor(_SPILL_COLOR))
+        pen.setStyle(Qt.PenStyle.DashLine)
+        painter.setPen(pen)
+        rect = option.rect.adjusted(0, 0, -1, -1)
+        if "top" in edges:
+            painter.drawLine(rect.topLeft(), rect.topRight())
+        if "bottom" in edges:
+            painter.drawLine(rect.bottomLeft(), rect.bottomRight())
+        if "left" in edges:
+            painter.drawLine(rect.topLeft(), rect.bottomLeft())
+        if "right" in edges:
+            painter.drawLine(rect.topRight(), rect.bottomRight())
+        painter.restore()
 
     def _list_rule(self, index):
         sheet = self._win._doc.workbook.sheet

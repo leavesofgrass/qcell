@@ -173,9 +173,10 @@ FUNCTIONS.update({
     "DOPPLER": _rfm_numeric("doppler_shift_hz", (_R, _R)),
 })
 
-# Modern array functions (XLOOKUP/UNIQUE/SORT/FILTER/SEQUENCE) live in their own
-# module and register themselves here. They return plain lists (no grid "spill"),
-# which compose inside aggregates via _flatten.
+# Modern array functions (UNIQUE/SORT/FILTER/SEQUENCE/TRANSPOSE/VSTACK/TAKE/…)
+# live in their own module and register themselves here. They return arrays that
+# *spill* when they are a cell's top-level result (see abax.core.spill and the
+# spill engine on Sheet) and compose inside aggregates via _flatten.
 from .. import arrayfuncs as _arrayfuncs  # noqa: E402
 
 _arrayfuncs.register(FUNCTIONS)

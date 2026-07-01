@@ -100,7 +100,9 @@ class _Parser:
 
     def unary(self):
         t = self.peek()
-        if t and t.kind == "OP" and t.value in ("+", "-"):
+        # '@' is the implicit-intersection prefix (take a single value from an
+        # array/range); '+'/'-' are the arithmetic signs.
+        if t and t.kind == "OP" and t.value in ("+", "-", "@"):
             op = self.next().value
             return A.Unary(op, self.unary())
         return self.primary()
@@ -126,6 +128,10 @@ class _Parser:
             self.next()
             sheet, ref = _split_sheet(t.value)
             return A.Ref(ref, sheet)
+        if t.kind == "SPILL":
+            self.next()
+            sheet, ref = _split_sheet(t.value)
+            return A.SpillRef(ref, sheet)
         if t.kind == "NAME":
             name = self.next().value
             nxt = self.peek()
@@ -141,7 +147,30 @@ class _Parser:
             node = self.comparison()
             self.expect("RPAREN")
             return node
+        if t.kind == "LBRACE":
+            return self.array_literal()
         raise FormulaError(f"unexpected token: {t}")
+
+    def array_literal(self):
+        """Parse ``{ row (; row)* }`` where a row is ``elem (, elem)*``. Commas
+        separate columns, semicolons separate rows (Excel array constants)."""
+        self.expect("LBRACE")
+        rows = [tuple(self._array_row())]
+        while (t := self.peek()) and t.kind == "SEMI":
+            self.next()
+            rows.append(tuple(self._array_row()))
+        self.expect("RBRACE")
+        width = len(rows[0])
+        if any(len(r) != width for r in rows):
+            raise FormulaError("array constant rows must be the same length")
+        return A.ArrayLiteral(tuple(rows))
+
+    def _array_row(self):
+        elems = [self.unary()]
+        while (t := self.peek()) and t.kind == "COMMA":
+            self.next()
+            elems.append(self.unary())
+        return elems
 
     def arglist(self):
         args = []

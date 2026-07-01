@@ -43,6 +43,7 @@ class Workbook:
     def invalidate_caches(self) -> None:
         for s in self.sheets:
             s._value_cache.clear()
+            s._spill_dirty = True
 
     def load_envelope(self, env: dict) -> None:
         """Replace this workbook's contents IN PLACE from an envelope.

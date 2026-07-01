@@ -115,7 +115,8 @@ def test_sequence_rows_only():
 
 
 def test_sequence_rows_cols():
-    assert sequence([2, 3]) == [1, 2, 3, 4, 5, 6]
+    # Multiple columns spill as a 2-D block (row-major).
+    assert sequence([2, 3]) == [[1, 2, 3], [4, 5, 6]]
 
 
 def test_sequence_start_and_step():
@@ -129,8 +130,12 @@ def test_sequence_step_only_with_defaults():
 # --- registry --------------------------------------------------------------
 
 
-def test_eager_has_five_uppercase_keys():
-    assert set(EAGER) == {"XLOOKUP", "UNIQUE", "SORT", "FILTER", "SEQUENCE"}
+def test_eager_registry_keys():
+    assert {"XLOOKUP", "UNIQUE", "SORT", "FILTER", "SEQUENCE"} <= set(EAGER)
+    # The dynamic-array reshaping family is registered too.
+    assert {"TRANSPOSE", "VSTACK", "HSTACK", "TAKE", "DROP", "SORTBY",
+            "CHOOSEROWS", "CHOOSECOLS", "TOROW", "TOCOL", "EXPAND",
+            "WRAPROWS", "WRAPCOLS", "RANDARRAY"} <= set(EAGER)
     assert all(name.isupper() for name in EAGER)
     assert all(callable(fn) for fn in EAGER.values())
 

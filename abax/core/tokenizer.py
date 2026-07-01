@@ -19,7 +19,7 @@ class Token(NamedTuple):
 
 
 # Order matters: longer operators before their prefixes.
-_OPERATORS = ("<=", ">=", "<>", "+", "-", "*", "/", "^", "%", "&", "=", "<", ">")
+_OPERATORS = ("<=", ">=", "<>", "+", "-", "*", "/", "^", "%", "&", "=", "<", ">", "@")
 
 # A sheet qualifier is a bare name (Sheet2) or a quoted name ('My Sheet'),
 # followed by '!'. Quoted names may contain '' as an escaped apostrophe.
@@ -33,16 +33,23 @@ _TOKEN_RE = re.compile(
     | (?P<QRANGE>"""
     + _SHEET
     + r"""\$?[A-Za-z]+\$?[0-9]+:\$?[A-Za-z]+\$?[0-9]+)
+    | (?P<QSPILL>"""
+    + _SHEET
+    + r"""\$?[A-Za-z]+\$?[0-9]+\#)
     | (?P<QREF>"""
     + _SHEET
     + r"""\$?[A-Za-z]+\$?[0-9]+)(?![A-Za-z0-9_.])
     | (?P<RANGE>\$?[A-Za-z]+\$?[0-9]+:\$?[A-Za-z]+\$?[0-9]+)
+    | (?P<SPILL>\$?[A-Za-z]+\$?[0-9]+\#)
     | (?P<REFLIKE>\$?[A-Za-z]+\$?[0-9]+)(?![A-Za-z0-9_.])
     | (?P<NUMBER>[0-9]*\.?[0-9]+(?:[eE][+-]?[0-9]+)?)
     | (?P<NAME>[A-Za-z_][A-Za-z0-9_.]*)
-    | (?P<OP><=|>=|<>|[+\-*/^%&=<>])
+    | (?P<OP><=|>=|<>|[+\-*/^%&=<>@])
     | (?P<LPAREN>\()
     | (?P<RPAREN>\))
+    | (?P<LBRACE>\{)
+    | (?P<RBRACE>\})
+    | (?P<SEMI>;)
     | (?P<COMMA>,)
     """,
     re.VERBOSE,
@@ -74,6 +81,8 @@ def tokenize(formula: str) -> list[Token]:
             tokens.append(Token("ERROR", text))
         elif kind == "QRANGE":
             tokens.append(Token("RANGE", text))  # value keeps the Sheet! prefix
+        elif kind in ("QSPILL", "SPILL"):
+            tokens.append(Token("SPILL", text[:-1]))  # drop the trailing '#'
         elif kind == "QREF":
             tokens.append(Token("REF", text))
         elif kind == "RANGE":
@@ -96,6 +105,12 @@ def tokenize(formula: str) -> list[Token]:
             tokens.append(Token("LPAREN", text))
         elif kind == "RPAREN":
             tokens.append(Token("RPAREN", text))
+        elif kind == "LBRACE":
+            tokens.append(Token("LBRACE", text))
+        elif kind == "RBRACE":
+            tokens.append(Token("RBRACE", text))
+        elif kind == "SEMI":
+            tokens.append(Token("SEMI", text))
         elif kind == "COMMA":
             tokens.append(Token("COMMA", text))
     return tokens

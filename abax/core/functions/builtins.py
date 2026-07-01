@@ -1307,12 +1307,49 @@ def _iserror(args):
 # --- lazy (control-flow) functions ----------------------------------------
 
 
+def _broadcast_if(cond, true_v, false_v):
+    """Element-wise IF over an array condition (Excel dynamic-array IF). The
+    condition, true and false values broadcast numpy-style; an error in the
+    condition propagates to that cell."""
+    from ..spill import as_grid
+
+    cg, tg, fg = as_grid(cond), as_grid(true_v), as_grid(false_v)
+    shapes = [(len(g), len(g[0]) if g else 0) for g in (cg, tg, fg)]
+    nr = max(s[0] for s in shapes)
+    nc = max(s[1] for s in shapes)
+    for r, c in shapes:
+        if r not in (1, nr) or c not in (1, nc):
+            return CellError(CellError.VALUE)
+
+    def pick(g, i, j):
+        return g[i if len(g) != 1 else 0][j if len(g[0]) != 1 else 0]
+
+    out = []
+    for i in range(nr):
+        row = []
+        for j in range(nc):
+            cval = pick(cg, i, j)
+            if is_error(cval):
+                row.append(cval)
+            elif _truthy(cval):
+                row.append(pick(tg, i, j))
+            else:
+                row.append(pick(fg, i, j))
+        out.append(row)
+    return out
+
+
 def _lazy_if(nodes, ev):
     if not nodes:
         return CellError(CellError.VALUE)
     cond = ev(nodes[0])
     if is_error(cond):
         return cond
+    if isinstance(cond, (list, RangeValue)):
+        # An array condition broadcasts IF element-wise (both branches evaluate).
+        true_v = ev(nodes[1]) if len(nodes) > 1 else True
+        false_v = ev(nodes[2]) if len(nodes) > 2 else False
+        return _broadcast_if(cond, true_v, false_v)
     if _truthy(cond):
         return ev(nodes[1]) if len(nodes) > 1 else True
     return ev(nodes[2]) if len(nodes) > 2 else False

@@ -51,6 +51,23 @@ class Range:
 
 
 @dataclass(frozen=True, slots=True)
+class SpillRef:
+    """A spill-range reference, e.g. ``A1#`` — the whole array that spilled from
+    the anchor cell ``A1`` (Excel's dynamic-array ``#`` operator)."""
+
+    text: str  # the anchor A1 text (without the trailing '#')
+    sheet: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class ArrayLiteral:
+    """An inline array constant, e.g. ``{1,2,3}`` (a row) or ``{1,2;3,4}`` (a
+    2-D block). ``rows`` is a tuple of tuples of constant AST nodes."""
+
+    rows: tuple  # tuple[tuple[node, ...], ...]
+
+
+@dataclass(frozen=True, slots=True)
 class Unary:
     op: str
     operand: Any

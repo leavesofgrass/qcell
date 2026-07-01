@@ -27,6 +27,8 @@ class CellError:
     REF = "#REF!"
     NUM = "#NUM!"
     NA = "#N/A"
+    SPILL = "#SPILL!"  # a dynamic array can't spill (its range is blocked)
+    CALC = "#CALC!"    # a dynamic array evaluated to nothing (e.g. FILTER no match)
     CIRC = "#CIRC!"  # abax extension: circular reference
 
     def __init__(self, code: str, detail: str = "") -> None:
