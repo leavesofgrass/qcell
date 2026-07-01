@@ -220,3 +220,40 @@ def test_window_defaults() -> None:
 def test_screen_constants() -> None:
     assert SCREEN_W == 94
     assert SCREEN_H == 62
+
+
+# --- letter variables (STO>) — were stubbed -------------------------------
+
+
+def test_store_and_recall_variable():
+    e = TIEngine()
+    assert e.home_eval("5->A") == "5"
+    assert e.home_eval("A*3") == "15"
+    assert e.get_var("A") == 5.0
+
+
+def test_store_via_arrow_unicode():
+    e = TIEngine()
+    e.home_eval("7→B")           # 7 → B
+    assert e.home_eval("B+1") == "8"
+
+
+def test_unset_variable_is_zero():
+    e = TIEngine()
+    assert e.home_eval("C+10") == "10"     # unset C reads as 0
+
+
+def test_store_method_and_ans():
+    e = TIEngine()
+    e.store(9, "D")
+    assert e.get_var("D") == 9.0
+    assert e.ans == 9.0                     # STO also updates Ans
+    assert e.home_eval("D*D") == "81"
+
+
+def test_variables_do_not_break_function_tokens():
+    e = TIEngine()
+    e.store(3, "A")
+    # lowercase function tokens are untouched by variable substitution
+    assert e.home_eval("abs(0-A)") == "3"
+    assert e.home_eval("9^0.5") == "3"

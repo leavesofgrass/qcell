@@ -230,3 +230,69 @@ def test_keypad_chs() -> None:
     kp.press(49)  # CHS
     # -(-1) interpreted signed... 0xFF is -1 signed, CHS -> 1
     assert kp.rpn.x == 1
+
+
+# --- immediate bit / word operations (previously stubbed keypad keys) ------
+
+
+def test_mask_right_and_left() -> None:
+    r = RPN16(base=16)
+    r.set_word_size(16)
+    assert r.eval_line("4 MASKR".replace("MASKR", "maskr")) == 0x000F
+    r.reset()
+    assert r.eval_line("4 maskl") == 0xF000
+
+
+def test_count_bits() -> None:
+    r = RPN16(base=16)
+    assert r.eval_line("FF countbits") == 8
+    r.reset()
+    assert r.eval_line("A5 countbits") == 4
+
+
+def test_abs_and_twos_complement() -> None:
+    r = RPN16(base=10)
+    r.set_word_size(16)
+    assert r.eval_line("5 chs abs") == 5
+    r.reset()
+    assert r._signed_value(r.eval_line("5 2comp")) == -5
+
+
+def test_remainder_sign_follows_dividend() -> None:
+    r = RPN16(base=10)
+    assert r._signed_value(r.eval_line("17 5 rmd")) == 2
+    r.reset()
+    assert r._signed_value(r.eval_line("17 chs 5 rmd")) == -2
+
+
+def test_set_clear_test_bit() -> None:
+    r = RPN16(base=16)
+    assert r.eval_line("0 3 sb") == 0x8          # set bit 3
+    r.reset()
+    assert r.eval_line("FF 0 cb") == 0xFE        # clear bit 0
+    r.reset()
+    assert r.eval_line("4 2 b?") == 1            # bit 2 of 0b100 is set
+
+
+def test_arithmetic_shift_right_sign_extends() -> None:
+    r = RPN16(base=16)
+    r.set_word_size(8)
+    # 0x80 = 1000_0000; ASR keeps the sign bit -> 1100_0000 = 0xC0.
+    assert r.eval_line("80 asr") == 0xC0
+
+
+def test_rotate_n() -> None:
+    r = RPN16(base=16)
+    r.set_word_size(8)
+    assert r.eval_line("1 4 rln") == 0x10
+    r.reset()
+    assert r.eval_line("10 4 rrn") == 0x1
+
+
+def test_keypad_programming_key_message() -> None:
+    kp = Voyager16Keypad(RPN16(base=16))
+    kp._apply("GTO")
+    assert "programming-mode" in kp.message
+    kp.message = ""
+    kp._apply("MASKR")   # a real op now: no "not implemented" message
+    assert kp.message == ""

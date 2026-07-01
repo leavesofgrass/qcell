@@ -181,3 +181,41 @@ def test_reset():
     assert r.regs == {}
     assert r.angle == "DEG"
     assert r.last_x == 0.0
+
+
+# --- hyperbolic / combinatorics / gradians (were HP-15C keypad stubs) ------
+
+
+def test_hyperbolic_roundtrip() -> None:
+    r = RPN()
+    assert math.isclose(r.eval_line("1 sinh"), math.sinh(1.0))
+    r.reset()
+    assert math.isclose(r.eval_line("0.5 tanh"), math.tanh(0.5))
+    r.reset()
+    # asinh(sinh(x)) == x
+    assert math.isclose(r.eval_line("2 sinh asinh"), 2.0, abs_tol=1e-12)
+
+
+def test_hyperbolic_ignores_angle_mode() -> None:
+    r = RPN()
+    r.feed("deg")
+    assert math.isclose(r.eval_line("1 sinh"), math.sinh(1.0))
+
+
+def test_combinations_and_permutations() -> None:
+    r = RPN()
+    assert r.eval_line("5 2 comb") == 10.0   # C(5,2)
+    r.reset()
+    assert r.eval_line("5 2 perm") == 20.0   # P(5,2)
+
+
+def test_comb_domain_error() -> None:
+    r = RPN()
+    with pytest.raises(RPNError):
+        r.eval_line("2 5 comb")              # r > n
+
+
+def test_gradians_angle_mode() -> None:
+    r = RPN()
+    r.feed("grd")
+    assert math.isclose(r.eval_line("100 sin"), 1.0, abs_tol=1e-12)  # sin(100 grad)=1

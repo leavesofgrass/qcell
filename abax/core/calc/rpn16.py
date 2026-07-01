@@ -291,6 +291,28 @@ def _safe_div(self: RPN16, y: int, x: int) -> int:
     return q if (sy < 0) == (sx < 0) else -q
 
 
+def _remainder(self: RPN16, y: int, x: int) -> int:
+    if x == 0:
+        raise RPN16Error("division by zero")
+    sy, sx = self._signed_value(y), self._signed_value(x)
+    # HP-16C RMD: sign of the result follows the dividend (C truncation).
+    return sy - sx * int(sy / sx)
+
+
+def _rotate_left_n(self: RPN16, y: int, x: int) -> int:
+    w = self.word_size
+    n = x % w if w else 0
+    y &= self._mask()
+    return ((y << n) | (y >> (w - n))) if n else y
+
+
+def _rotate_right_n(self: RPN16, y: int, x: int) -> int:
+    w = self.word_size
+    n = x % w if w else 0
+    y &= self._mask()
+    return ((y >> n) | (y << (w - n))) if n else y
+
+
 _BINARY: dict[str, "callable"] = {
     "+": lambda self, y, x: self._signed_value(y) + self._signed_value(x),
     "-": lambda self, y, x: self._signed_value(y) - self._signed_value(x),
@@ -299,6 +321,13 @@ _BINARY: dict[str, "callable"] = {
     "and": lambda self, y, x: y & x,
     "or": lambda self, y, x: y | x,
     "xor": lambda self, y, x: y ^ x,
+    "rmd": _remainder,
+    # Set / clear / test bit number x within word y.
+    "sb": lambda self, y, x: y | (1 << (x % self.word_size)),
+    "cb": lambda self, y, x: y & ~(1 << (x % self.word_size)),
+    "b?": lambda self, y, x: (y >> (x % self.word_size)) & 1,
+    "rln": _rotate_left_n,
+    "rrn": _rotate_right_n,
 }
 
 
@@ -322,14 +351,42 @@ def _rotate_right(self: RPN16, x: int) -> int:
     return (x >> 1) | (bottom << (w - 1))
 
 
+def _arith_shift_right(self: RPN16, x: int) -> int:
+    """ASR — arithmetic shift right, replicating the sign bit."""
+    w = self.word_size
+    msb = (x >> (w - 1)) & 1
+    return (x >> 1) | (msb << (w - 1))
+
+
+def _mask_left(self: RPN16, x: int) -> int:
+    """MASKL — a mask of the ``x`` most-significant bits set."""
+    w = self.word_size
+    n = min(max(self._signed_value(x), 0), w)
+    return ((1 << n) - 1) << (w - n) if n else 0
+
+
+def _mask_right(self: RPN16, x: int) -> int:
+    """MASKR — a mask of the ``x`` least-significant bits set."""
+    w = self.word_size
+    n = min(max(self._signed_value(x), 0), w)
+    return (1 << n) - 1
+
+
 _UNARY: dict[str, "callable"] = {
     "chs": lambda self, x: -self._signed_value(x),
     "neg": lambda self, x: -self._signed_value(x),
     "not": lambda self, x: ~x,
+    "1comp": lambda self, x: ~x,               # 1's complement == NOT
+    "2comp": lambda self, x: -self._signed_value(x),  # 2's complement == negate
+    "abs": lambda self, x: abs(self._signed_value(x)),
+    "countbits": lambda self, x: bin(x & self._mask()).count("1"),
     "sl": _shift_left,
     "sr": _shift_right,
+    "asr": _arith_shift_right,
     "rl": _rotate_left,
     "rr": _rotate_right,
+    "maskl": _mask_left,
+    "maskr": _mask_right,
 }
 
 
@@ -422,7 +479,21 @@ _TOKEN: dict[str, str] = {
     "SL": "sl", "SR": "sr", "RL": "rl", "RR": "rr",
     "CHS": "chs", "Rdn": "rdn", "Rup": "rup", "x<>y": "swap", "LSTx": "lastx",
     "HEX": "hex", "DEC": "dec", "OCT": "oct", "BIN": "bin",
+    # Immediate bit / word operations (were stubbed).
+    "ASR": "asr", "RMD": "rmd", "ABS": "abs", "#B": "countbits",
+    "MASKL": "maskl", "MASKR": "maskr",
+    "1's comp": "1comp", "2's comp": "2comp",
+    "SB": "sb", "CB": "cb", "B?": "b?", "RLn": "rln", "RRn": "rrn",
 }
+
+# Programming-mode keys (labels, GTO targets, flow control). The immediate-mode
+# keypad has no program memory, so these are intentionally inert — reported
+# distinctly from a genuinely unknown key.
+_PROGRAM_KEYS: frozenset = frozenset({
+    "GSB", "GTO", "LBL", "RTN", "R/S", "SST", "BST", "DSZ", "ISZ", "P/R",
+    "PSE", "(i)", "I", "x<>(i)", "x<>I", "x<=y", "x<0", "x>y", "x=0", "x>0",
+    "x/=y", "x/=0", "x=y", "SF", "CF", "F?", "CLR PRGM", "MEM",
+})
 _HEX_DIGITS = set("0123456789ABCDEF")
 
 
@@ -507,9 +578,14 @@ class Voyager16Keypad:
             return
         token = _TOKEN.get(label)
         if token is None:
-            self.message = f"{label}: not implemented"
+            if label in _PROGRAM_KEYS:
+                self.message = f"{label}: programming-mode key (no program memory)"
+            else:
+                self.message = f"{label}: not implemented"
             return
         self._commit_entry()
+        # B? leaves a 1/0 test result on the stack (immediate-mode analogue of the
+        # program-mode skip); the other ops consume/replace as usual.
         try:
             self.rpn.feed(token)
         except RPN16Error as exc:

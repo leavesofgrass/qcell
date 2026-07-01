@@ -48,9 +48,24 @@ _TOKEN = {
     "SIN-1": "asin", "COS-1": "acos", "TAN-1": "atan",
     "Rdn": "rdn", "Rup": "rup", "x<>y": "swap", "Pi": "pi", "LSTx": "lastx",
     "%": "pct", "ABS": "abs", "INT": "int", "FRAC": "frac", "x!": "fact",
-    "RND": "int", "DEG": "deg", "RAD": "rad", "CLx": "clx",
+    "RND": "int", "DEG": "deg", "RAD": "rad", "GRD": "grd", "CLx": "clx",
+    "Cy,x": "comb", "Py,x": "perm",
 }
 _DIGITS = set("0123456789")
+
+# HYP / HYP-1 prefixes combine with SIN/COS/TAN for the hyperbolic family.
+_HYP: dict[str, dict[str, str]] = {
+    "f": {"SIN": "sinh", "COS": "cosh", "TAN": "tanh"},
+    "g": {"SIN": "asinh", "COS": "acosh", "TAN": "atanh"},
+}
+
+# Keys that need program memory or a solver/matrix subsystem the immediate-mode
+# keypad doesn't provide — reported distinctly from a genuinely unknown key.
+_PROGRAM_KEYS: frozenset = frozenset({
+    "SOLVE", "INTEGRATE", "MATRIX", "DIM", "RESULT", "GTO", "GSB", "LBL", "RTN",
+    "SST", "BST", "R/S", "P/R", "PSE", "DSE", "ISG", "TEST", "SF", "CF",
+    "F?", "USER", "MEM", "(i)", "I", "L.R.", "lin est,r",
+})
 
 
 class VoyagerKeypad:
@@ -61,6 +76,7 @@ class VoyagerKeypad:
         self.entry = ""
         self.shift = ""  # "", "f", or "g"
         self.pending = ""  # "sto" / "rcl" awaiting a register digit
+        self.hyp = ""  # "", "f" (HYP), or "g" (HYP-1) awaiting SIN/COS/TAN
         self.message = ""
 
     # --- queries ----------------------------------------------------------
@@ -129,9 +145,28 @@ class VoyagerKeypad:
             self._commit_entry()
             self.pending = label.lower()
             return
+        # HYP / HYP-1 are prefixes: arm the hyperbolic mode, then the next
+        # SIN/COS/TAN resolves to sinh/cosh/tanh (or the inverse).
+        if label in ("HYP", "HYP-1"):
+            self.hyp = "g" if label == "HYP-1" else "f"
+            return
+        if self.hyp and label in ("SIN", "COS", "TAN"):
+            token = _HYP[self.hyp][label]
+            self.hyp = ""
+            self._commit_entry()
+            try:
+                self.rpn.feed(token)
+            except RPNError as exc:
+                self.message = str(exc)
+            return
+        self.hyp = ""
+
         token = _TOKEN.get(label)
         if token is None:
-            self.message = f"{label}: not implemented"
+            if label in _PROGRAM_KEYS:
+                self.message = f"{label}: needs program/solver memory (use the console)"
+            else:
+                self.message = f"{label}: not implemented"
             return
         self._commit_entry()
         try:

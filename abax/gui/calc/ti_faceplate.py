@@ -159,8 +159,33 @@ def _build_keys(win_label: str) -> "list[_Key]":
     return keys
 
 
-_STUB = {"@statplot", "@format", "@calc", "@ins", "@alpha", "@prgm",
-         "@vars", "@sto"}
+# Keys that drive a TI subsystem abax's calculator doesn't model (plotting,
+# programs, graph-analysis menus). They report a short note instead of acting.
+_STUB = {"@statplot", "@format", "@calc", "@ins", "@prgm", "@vars"}
+
+# The green ALPHA letter on each key, keyed by the key's primary action. Matches
+# the TI-83/84 layout (MATH=A … STO>=X, 1=Y, 2=Z, 3=θ). The minus key gives W;
+# the separate (-) key shares the "-" action, so it also yields W (a harmless
+# quirk — its true ALPHA glyph is a rarely-used "?").
+_ALPHA = {
+    "@math": "A", "@apps": "B", "@prgm": "C",
+    "^-1": "D", "sin(": "E", "cos(": "F", "tan(": "G", "^": "H",
+    "^2": "I", ",": "J", "(": "K", ")": "L", "/": "M",
+    "log10(": "N", "7": "O", "8": "P", "9": "Q", "*": "R",
+    "ln(": "S", "4": "T", "5": "U", "6": "V", "-": "W",
+    "@sto": "X", "1": "Y", "2": "Z", "3": "θ", "+": '"',
+    "0": " ", ".": ":",
+}
+
+# A friendlier note per stubbed key (falls back to the bare label).
+_STUB_MSG = {
+    "@statplot": "STAT PLOT: no plotting subsystem",
+    "@format": "FORMAT: graph format not modeled",
+    "@calc": "CALC: graph-analysis menu not modeled",
+    "@ins": "INS: overwrite/insert not modeled",
+    "@prgm": "PRGM: no program memory",
+    "@vars": "VARS: recall not modeled (store A-Z with ALPHA + STO)",
+}
 
 # Faithful TI-83/84 menus. Each item is (label, paste) — `paste` is the token
 # inserted onto the entry line (TI behaviour), or None for an item we render but
@@ -372,6 +397,7 @@ class TIFaceplate(QWidget):
         self.message = ""
         self.y_index = 1
         self.shift = ""            # "" | "2nd"
+        self.alpha = ""            # "" | "on" (one-shot) | "lock" (A-LOCK)
         self.trace_fn = 1
         self.trace_col = SCREEN_W // 2
         self._menu = None          # active MATH/STAT/APPS menu, or None
@@ -548,6 +574,19 @@ class TIFaceplate(QWidget):
     # -- input / actions ---------------------------------------------------
 
     def _press(self, primary: str, second) -> None:
+        # ALPHA: the next key types its green letter into the entry line (one-shot,
+        # or held while A-LOCK is on).
+        if self.alpha and self.mode in ("home", "yeditor"):
+            ch = _ALPHA.get(primary)
+            if ch is not None:
+                self.message = ""
+                self.input += ch
+                if self.alpha != "lock":
+                    self.alpha = ""
+                self.update()
+                return
+            if primary not in ("@alpha", "@2nd"):
+                self.alpha = ""   # a non-letter key cancels a one-shot ALPHA
         if self.shift == "2nd" and second is not None:
             self._do(second)
         else:
@@ -557,6 +596,12 @@ class TIFaceplate(QWidget):
         if action == "@2nd":
             self.shift = "" if self.shift == "2nd" else "2nd"
             self.message = ""
+            self.update()
+            return
+        if action == "@alpha":
+            # Cycle OFF -> ALPHA (one key) -> A-LOCK (held) -> OFF.
+            self.alpha = {"": "on", "on": "lock", "lock": ""}[self.alpha]
+            self.message = {"on": "ALPHA", "lock": "A-LOCK", "": ""}[self.alpha]
             self.update()
             return
         if self.mode == "menu":
@@ -590,8 +635,11 @@ class TIFaceplate(QWidget):
             hist = self.engine.history()
             if hist:
                 self.input = hist[-1][0]
+        elif action == "@sto":
+            # STO> — insert the store arrow; the engine parses "<expr>->V".
+            self.input += "->"
         elif action in _STUB:
-            self.message = action[1:].upper()
+            self.message = _STUB_MSG.get(action, action[1:].upper())
         elif action == "@yedit":
             self.mode = "yeditor"
             self.input = self.engine.get_function(self.y_index)
@@ -727,5 +775,10 @@ class TIFaceplate(QWidget):
             self._do("@down")
         elif text and text in "0123456789.+-*/^()xX":
             self._do("X" if text in "xX" else text)
+        elif text and len(text) == 1 and text.isalpha() and self.mode in ("home", "yeditor"):
+            # A physical letter key types the upper-case variable (A-Z).
+            self.message = ""
+            self.input += text.upper()
+            self.update()
         else:
             super().keyPressEvent(event)

@@ -74,10 +74,18 @@ class RPN:
     # -- angle helpers -----------------------------------------------------
 
     def _to_radians(self, value: float) -> float:
-        return math.radians(value) if self.angle == "DEG" else value
+        if self.angle == "DEG":
+            return math.radians(value)
+        if self.angle == "GRD":  # 400 gradians = 2*pi
+            return value * math.pi / 200.0
+        return value
 
     def _from_radians(self, value: float) -> float:
-        return math.degrees(value) if self.angle == "DEG" else value
+        if self.angle == "DEG":
+            return math.degrees(value)
+        if self.angle == "GRD":
+            return value * 200.0 / math.pi
+        return value
 
     # -- token application -------------------------------------------------
 
@@ -114,7 +122,7 @@ class RPN:
             _STACK_OPS[key](self)
             return
 
-        if key in ("deg", "rad"):
+        if key in ("deg", "rad", "grd"):
             self.angle = key.upper()
             return
 
@@ -238,7 +246,19 @@ _BINARY: dict[str, "callable"] = {
     "pow": lambda y, x: y ** x,
     "y^x": lambda y, x: y ** x,
     "mod": lambda y, x: math.fmod(y, x),
+    # Combinations / permutations (HP-15C Cy,x / Py,x): y = n, x = r.
+    "comb": lambda y, x: _comb_perm(math.comb, y, x),
+    "perm": lambda y, x: _comb_perm(math.perm, y, x),
 }
+
+
+def _comb_perm(fn, y: float, x: float) -> float:
+    """Combinations/permutations with HP-style domain checking."""
+    if y < 0 or x < 0 or y != int(y) or x != int(x):
+        raise RPNError("combinatorics require non-negative integers")
+    if x > y:
+        raise RPNError("require r <= n")
+    return float(fn(int(y), int(x)))
 
 
 def _inv(self: RPN, x: float) -> float:
@@ -295,6 +315,14 @@ _UNARY: dict[str, "callable"] = {
     "asin": lambda self, x: self._from_radians(math.asin(x)),
     "acos": lambda self, x: self._from_radians(math.acos(x)),
     "atan": lambda self, x: self._from_radians(math.atan(x)),
+    # Hyperbolic functions (HP-15C f-HYP / g-HYP-1). These operate on the pure
+    # value, independent of the DEG/RAD/GRD angle mode.
+    "sinh": lambda self, x: math.sinh(x),
+    "cosh": lambda self, x: math.cosh(x),
+    "tanh": lambda self, x: math.tanh(x),
+    "asinh": lambda self, x: math.asinh(x),
+    "acosh": lambda self, x: math.acosh(x),
+    "atanh": lambda self, x: math.atanh(x),
 }
 
 

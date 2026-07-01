@@ -77,3 +77,36 @@ def test_grid_positions():
     assert grid_pos(47) == (3, 6)   # "0" key, bottom row
     assert grid_pos(10) == (0, 9)   # divide, top-right
     assert 36 in LEGENDS_15C and LEGENDS_15C[36][0] == "ENTER"
+
+
+def test_voyager_hyp_prefix_sinh() -> None:
+    from abax.core.calc.voyager import VoyagerKeypad
+    import math
+
+    kp = VoyagerKeypad()
+    for ch in "1":
+        kp._apply(ch)
+    kp._apply("HYP")            # arm hyperbolic prefix
+    kp._apply("SIN")            # -> sinh(1)
+    assert math.isclose(kp.rpn.x, math.sinh(1.0))
+
+
+def test_voyager_hyp_inverse() -> None:
+    from abax.core.calc.voyager import VoyagerKeypad
+    import math
+
+    kp = VoyagerKeypad()
+    kp._apply("2")
+    kp._apply("HYP")
+    kp._apply("SIN")            # sinh(2)
+    kp._apply("HYP-1")
+    kp._apply("SIN")            # asinh(...) -> back to 2
+    assert math.isclose(kp.rpn.x, 2.0, abs_tol=1e-12)
+
+
+def test_voyager_programming_key_message() -> None:
+    from abax.core.calc.voyager import VoyagerKeypad
+
+    kp = VoyagerKeypad()
+    kp._apply("SOLVE")
+    assert "program" in kp.message.lower() or "solver" in kp.message.lower()

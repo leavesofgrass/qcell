@@ -15,9 +15,17 @@ the compiler, so callers may write either ``X`` or ``x`` in their expressions.
 from __future__ import annotations
 
 import math
+import re
 from typing import Callable
 
 from abax.core import graphing
+
+# A stored letter variable used as a whole token (A-Z, not part of a longer
+# name). Faceplate function tokens are lower-case, so an upper-case single letter
+# is unambiguously a variable.
+_VAR_RE = re.compile(r"\b([A-Z])\b")
+# A store assignment: ``<expr> -> V`` / ``<expr> → V`` (the TI STO> key).
+_STORE_RE = re.compile(r"^(.*?)(?:->|→)\s*([A-Z])\s*$", re.DOTALL)
 
 SCREEN_W = 94  # usable plot pixels (96 minus a 1px border each side)
 SCREEN_H = 62
@@ -79,17 +87,40 @@ class TIEngine:
         self._history: list[tuple[str, str]] = []
         self._window = Window()
         self._ans: float = 0.0
+        # A-Z letter variables (STO>). An unset variable reads as 0, like a TI.
+        self._vars: dict[str, float] = {}
+
+    # --- letter variables (STO>) ----------------------------------------
+    def get_var(self, name: str) -> float:
+        """The value of letter variable ``name`` (0 if never stored)."""
+        return self._vars.get(name.upper(), 0.0)
+
+    def store(self, value: float, name: str) -> None:
+        """Store ``value`` into letter variable ``name`` (also updates ``Ans``)."""
+        self._vars[name.upper()] = float(value)
+        self._ans = float(value)
+
+    def _substitute(self, text: str) -> str:
+        """Replace ``Ans`` and stored letter variables with their values."""
+        text = text.replace("Ans", f"({_format_number(self._ans)})")
+        return _VAR_RE.sub(lambda m: f"({_format_number(self.get_var(m.group(1)))})", text)
 
     # --- home screen -----------------------------------------------------
     def home_eval(self, expr: str) -> str:
         """Evaluate ``expr`` (X-free context; X = 0), set ``Ans``, log it.
 
-        Returns the result as a TI-style string. ``Ans`` may appear literally
-        in the expression and is substituted with the current answer before
-        compiling. On any error the TI string ``"ERR: SYNTAX"`` is returned and
-        no exception propagates.
+        Returns the result as a TI-style string. ``Ans`` and any stored letter
+        variables are substituted before compiling; a trailing ``->V`` / ``→V``
+        stores the result in variable ``V``. On any error the TI string
+        ``"ERR: SYNTAX"`` is returned and no exception propagates.
         """
-        text = expr.replace("Ans", f"({_format_number(self._ans)})")
+        target = None
+        store = _STORE_RE.match(expr)
+        if store is not None:
+            expr_body, target = store.group(1), store.group(2)
+        else:
+            expr_body = expr
+        text = self._substitute(expr_body)
         try:
             f = graphing.compile_expr(_prep(text))
             value = float(f(0.0))
@@ -97,6 +128,8 @@ class TIEngine:
             return "ERR: SYNTAX"
         if not math.isfinite(value):
             return "ERR: SYNTAX"
+        if target is not None:
+            self._vars[target] = value
         self._ans = value
         result = _format_number(value)
         self._history.append((expr, result))
