@@ -170,6 +170,29 @@ def test_take_drop_choose():
     assert _vals(s, ["E1", "E2"]) == [1, 5]
 
 
+# --- Wave H array-returning stats spill too --------------------------------
+
+
+def test_frequency_spills():
+    s = Sheet()
+    for r, val in enumerate([1, 2, 3, 4, 5]):
+        s.set_cell(r, 0, str(val))       # data A1:A5
+    s.set_cell(0, 1, "2")                 # bins B1:B2
+    s.set_cell(1, 1, "4")
+    s.set("D1", "=FREQUENCY(A1:A5, B1:B2)")
+    assert _vals(s, ["D1", "D2", "D3"]) == [2, 2, 1]
+
+
+def test_linest_spills_across_a_row():
+    s = Sheet()
+    for r, val in enumerate([2, 4, 6]):
+        s.set_cell(r, 0, str(val))        # y = 2x in A1:A3
+    s.set("C1", "=LINEST(A1:A3)")
+    assert s.get("C1") == 2.0             # slope
+    assert s.get("D1") == 0.0             # intercept
+    assert s.is_spill_anchor(0, 2)
+
+
 def test_array_arithmetic_broadcasts_and_spills():
     s = Sheet()
     for r, val in enumerate([1, 2, 3]):
