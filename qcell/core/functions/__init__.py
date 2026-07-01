@@ -179,3 +179,28 @@ FUNCTIONS.update({
 from .. import arrayfuncs as _arrayfuncs  # noqa: E402
 
 _arrayfuncs.register(FUNCTIONS)
+
+# Excel/Gnumeric-parity function packs — each a pure-stdlib core module that
+# registers its own names (math/trig/info, statistics + distributions, text +
+# date/time, financial, engineering + database). Optional at import: a missing
+# pack is skipped so a partial checkout still loads.
+for _pack in ("math_fns", "stats_dist", "text_datetime_fns", "finance_fns",
+              "engineering_fns"):
+    try:
+        _mod = __import__(f"qcell.core.{_pack}", fromlist=["register"])
+        _mod.register(FUNCTIONS)
+    except Exception:  # noqa: BLE001 — a broken/absent pack must not kill the engine
+        pass
+
+# Modern dotted aliases (Excel 2010+) for functions that already exist under their
+# legacy name with an identical signature — point both names at the same callable.
+for _dotted, _canon in {
+    "STDEV.S": "STDEV", "STDEV.P": "STDEVP", "VAR.S": "VAR", "VAR.P": "VARP",
+    "MODE.SNGL": "MODE", "PERCENTILE.INC": "PERCENTILE", "QUARTILE.INC": "QUARTILE",
+    "COVARIANCE.P": "COVAR", "NORM.DIST": "NORMDIST", "NORM.INV": "NORMINV",
+    "NORM.S.INV": "NORMSINV", "CONFIDENCE.NORM": "CONFIDENCE",
+    "CHISQ.DIST.RT": "CHIDIST", "CHISQ.INV.RT": "CHIINV",
+    "F.DIST.RT": "FDIST", "F.INV.RT": "FINV",
+}.items():
+    if _canon in FUNCTIONS:
+        FUNCTIONS[_dotted] = FUNCTIONS[_canon]

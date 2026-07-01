@@ -10,7 +10,7 @@ from qcell.core.functions import FUNCTIONS, LAZY_FUNCTIONS
 
 
 def test_registry_sizes():
-    assert len(FUNCTIONS) == 217
+    assert len(FUNCTIONS) == 405
     assert len(LAZY_FUNCTIONS) == 6
 
 

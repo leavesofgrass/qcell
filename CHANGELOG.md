@@ -7,6 +7,12 @@ All notable changes to qcell are documented here. The format follows
 ## [Unreleased]
 
 ### Changed
+- **Tokenizer: function names with interior digits now parse** — a name like
+  `DEC2BIN`/`BIN2DEC` was mis-lexed (`DEC2` as a cell reference, then `BIN`), because
+  the ref pattern matched a letters-then-digits prefix even when more name characters
+  followed. Ref-like tokens now require that no name character follows, so
+  digit-infix function names tokenize whole (cell refs like `A1`/`Sheet1!A1` and
+  trailing-digit names like `LOG10`/`ATAN2` are unchanged).
 - **Menu reorganization** — with the RF/ham suite now sizeable, all of it moves out
   of *Tools → Scientific* into a **dedicated top-level `Radio` menu** (RF toolkit,
   Smith chart, antenna pattern, RF reference, I/Q → SVG, PyNEC solver); *Scientific*
@@ -80,6 +86,32 @@ All notable changes to qcell are documented here. The format follows
   speed.
 
 ### Added
+- **~180 new formula functions toward Excel / Gnumeric parity** (223 → 405) across
+  five pure-stdlib packs, each registered into the `functions/` package:
+  - **Math / trig / info** (`core/math_fns.py`, 43): hyperbolic & reciprocal trig
+    (SINH…COTH, SEC/CSC/COT), EVEN/ODD/MROUND/QUOTIENT/SQRTPI, COMBIN/COMBINA/
+    PERMUT/PERMUTATIONA/MULTINOMIAL/FACTDOUBLE, SUMX2MY2/SUMX2PY2/SUMXMY2/SERIESSUM,
+    ROMAN/ARABIC/BASE/DECIMAL, GAMMA/GAMMALN, and the IS*/N/TYPE/ERROR.TYPE family.
+  - **Statistics & distributions** (`core/stats_dist.py`, 46): the distribution set
+    (BINOM/NEGBINOM/POISSON/HYPGEOM/EXPON/GAMMA/BETA/WEIBULL/LOGNORM, dist + inverse,
+    legacy and dotted names), DEVSQ/AVEDEV/AVERAGEA/TRIMMEAN/PERCENTRANK/STANDARDIZE/
+    STEYX/PEARSON/FISHER, RANK.EQ/RANK.AVG, and the conditional aggregates
+    **SUMIFS/COUNTIFS/AVERAGEIFS/MAXIFS/MINIFS**.
+  - **Text & date/time** (`core/text_datetime_fns.py`, 19): TEXTJOIN/TEXTBEFORE/
+    TEXTAFTER/CLEAN/UNICHAR/UNICODE/DOLLAR/FIXED/NUMBERVALUE; TIME/TIMEVALUE/
+    DATEVALUE/EOMONTH/WORKDAY/NETWORKDAYS/WEEKNUM/ISOWEEKNUM/YEARFRAC/DAYS360.
+  - **Financial** (`core/finance_fns.py`, 25): the time-value-of-money set
+    (FV/PV/PMT/IPMT/PPMT/NPER/RATE), cashflow analysis (NPV/IRR/XNPV/XIRR/MIRR/
+    CUMIPMT/CUMPRINC), depreciation (SLN/SYD/DB/DDB/VDB) and EFFECT/NOMINAL/
+    DOLLARDE/DOLLARFR/PDURATION/RRI.
+  - **Engineering & database** (`core/engineering_fns.py`, 39): base conversions
+    (BIN/OCT/DEC/HEX, all 12), bitwise (BITAND/OR/XOR/LSHIFT/RSHIFT),
+    DELTA/GESTEP/ERF/ERFC and Bessel (BESSELJ/Y/I/K), and the database D-functions
+    (DSUM/DCOUNT/DCOUNTA/DAVERAGE/DMAX/DMIN/DGET/DPRODUCT/DSTDEV/DSTDEVP/DVAR/DVARP).
+  - Plus **16 modern dotted aliases** (STDEV.S, VAR.P, NORM.DIST, PERCENTILE.INC,
+    COVARIANCE.P, CHISQ.DIST.RT, …) for existing legacy-named functions.
+  Each function is oracle-tested against documented Excel/LibreOffice values;
+  the shared criteria engine (`core/criteria.py`) backs SUMIF/*IFS/D-functions.
 - **SQL over sheets** (*Data → Analyze → SQL query*) — run SQL against the workbook:
   each sheet becomes an in-memory SQLite table (first row = headers, types inferred),
   so `SELECT` / `JOIN` / `GROUP BY` work across sheets; results view in a grid and

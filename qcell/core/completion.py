@@ -181,6 +181,17 @@ SIGNATURES = {
     "DISHBW": "DISHBW(diameter_m, freq_hz)", "DOPPLER": "DOPPLER(freq_hz, velocity_mps)",
 }
 
+# The Excel/Gnumeric-parity function packs carry their own signatures; merge them
+# so the browser and completion show argument hints. A missing/broken pack is
+# skipped (same policy as the registry).
+for _pack in ("math_fns", "stats_dist", "text_datetime_fns", "finance_fns",
+              "engineering_fns"):
+    try:
+        _mod = __import__(f"qcell.core.{_pack}", fromlist=["SIGNATURES"])
+        SIGNATURES.update(getattr(_mod, "SIGNATURES", {}))
+    except Exception:  # noqa: BLE001
+        pass
+
 
 def signature(name: str) -> str:
     name = name.upper()
