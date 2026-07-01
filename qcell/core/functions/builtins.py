@@ -9,10 +9,8 @@ from __future__ import annotations
 
 import math
 import random
-import re
 import statistics
 from datetime import date, datetime, timedelta
-from functools import lru_cache
 from typing import Any, Callable
 
 from .helpers import *  # noqa: F403
@@ -843,68 +841,9 @@ def _atan2(args):
 
 
 def _make_predicate(criteria: Any) -> Callable[[Any], bool]:
-    if isinstance(criteria, bool):
-        return lambda v: isinstance(v, bool) and v == criteria
-    if isinstance(criteria, (int, float)):
-        target = float(criteria)
-        return lambda v: (n := _try_num(v)) is not None and not isinstance(v, str) and n == target
-    s = str(criteria).strip()
-    m = re.match(r"^(<=|>=|<>|=|<|>)(.*)$", s)
-    op, rest = ("=", s)
-    if m:
-        op, rest = m.group(1), m.group(2).strip()
-    num = _try_num(rest) if rest != "" else None
-    if num is not None:
-
-        def num_pred(v, op=op, num=num):
-            x = _try_num(v)
-            if x is None or isinstance(v, str):
-                return False
-            return _cmp(op, x, num)
-
-        return num_pred
-
-    pattern = _wildcard_re(rest)
-
-    def text_pred(v, op=op, pattern=pattern, rest=rest):
-        s2 = _text(v)
-        if op == "=":
-            return pattern.match(s2) is not None
-        if op == "<>":
-            return pattern.match(s2) is None
-        return _cmp(op, s2.lower(), rest.lower())
-
-    return text_pred
-
-
-def _cmp(op: str, a, b) -> bool:
-    if op == "=":
-        return a == b
-    if op == "<>":
-        return a != b
-    if op == "<":
-        return a < b
-    if op == ">":
-        return a > b
-    if op == "<=":
-        return a <= b
-    if op == ">=":
-        return a >= b
-    return False
-
-
-@lru_cache(maxsize=256)
-def _wildcard_re(pattern: str) -> re.Pattern:
-    out = ["(?i)^"]
-    for ch in pattern:
-        if ch == "*":
-            out.append(".*")
-        elif ch == "?":
-            out.append(".")
-        else:
-            out.append(re.escape(ch))
-    out.append("$")
-    return re.compile("".join(out))
+    # The criteria engine is shared with the *IFS and database (D*) functions.
+    from ..criteria import make_predicate
+    return make_predicate(criteria)
 
 
 def _countif(args):
@@ -1518,8 +1457,6 @@ __all__ = [
     "_trig",
     "_atan2",
     "_make_predicate",
-    "_cmp",
-    "_wildcard_re",
     "_countif",
     "_sumif",
     "_averageif",
