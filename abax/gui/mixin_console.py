@@ -41,6 +41,38 @@ class ConsoleMixin:
         self._set_status("code execution stays disabled")
         return False
 
+    def toggle_strict_sandbox(self) -> None:
+        """Flip strict OS-confinement (Phase 3) for the console / scripts / macros.
+
+        When on, the worker runs inside an OS sandbox (Windows AppContainer,
+        Linux bubblewrap, macOS sandbox-exec) that denies network and confines
+        filesystem writes to a private scratch dir — and refuses to run at all
+        if that confinement can't be established on this platform. Takes effect
+        for the next console you open and the next macro/script you run."""
+        from .. import sandbox as _sandbox
+
+        new = not getattr(self._settings, "sandbox_strict", False)
+        self._settings.sandbox_strict = new
+        # Reset the macro/script worker so the change applies immediately.
+        bridge = getattr(self, "_macro_bridge", None)
+        if bridge is not None:
+            try:
+                bridge.close()
+            except Exception:
+                pass
+            self._macro_bridge = None
+        if new:
+            strat = _sandbox.select_confinement()
+            if strat.available():
+                self._set_status(f"strict sandbox ON — {strat.describe()}")
+            else:
+                self._set_status("strict sandbox ON — but no OS confinement is "
+                                 "available here, so code execution will refuse "
+                                 "to run (fail-closed). Disable to run code.")
+        else:
+            self._set_status("strict sandbox OFF — code runs with crash/resource "
+                             "isolation only (not a security boundary)")
+
     def show_terminal(self) -> None:
         if not self._require_code_consent("The system terminal"):
             return

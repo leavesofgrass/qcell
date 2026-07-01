@@ -13,6 +13,23 @@ All notable changes to abax are documented here. The format follows
 ## [0.1.3] — 2026-07-01
 
 ### Added
+- **Code-execution sandbox — Phases 3 & 4: a real, opt-in OS boundary**
+  (see `dev/sandbox-design.md`). A new **strict sandbox mode** (the
+  `sandbox_strict` setting, the `ABAX_SANDBOX_STRICT` env var, or the palette's
+  *Toggle strict sandbox (OS confinement)*) runs the console / scripts / macros
+  inside the platform's OS sandbox — a **Windows AppContainer**, **Linux
+  bubblewrap**, or **macOS sandbox-exec** — with **no network** and filesystem
+  writes confined to a private scratch dir. It is **fail-closed**: after the
+  sandbox is applied the worker runs a live escape self-test (tries to write
+  outside scratch and open a socket) and *refuses to run code* if either
+  succeeds, and refuses if no OS confinement is available on the platform — so
+  strict mode is a genuine boundary or nothing, never a pretense. The Windows
+  AppContainer path is verified end-to-end (worker runs; user code is denied
+  home-writes and network; ACL grants + profile reverted on teardown). When no
+  OS sandbox is available, an opt-in **Phase 4** AST-allowlist executor
+  (`restricted.py`) offers *labelled hardening* (not a security boundary)
+  against accidental harm. Default (non-strict) execution is unchanged: crash +
+  resource isolation, documented as not a security boundary.
 - **Code-execution sandbox — Phases 1 & 2** (see `dev/sandbox-design.md`). The
   GUI's **script runner and command macros now run out-of-process** in the same
   isolated worker as the Python console (`console_worker.py` grew `exec` /

@@ -18,20 +18,42 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 
+from ... import sandbox
 from ...console_worker import _read_frame, _write_frame
 from ...proclimits import assign_windows_job, close_windows_job
 
 _BOOT = "from abax.console_worker import main; main()"
 
+# Returned in place of a worker response when strict mode was requested but no
+# OS confinement is available on this platform — we refuse rather than run
+# untrusted code unconfined (the Phase 3 fail-closed rule, parent side).
+_STRICT_UNAVAILABLE = (
+    "Strict sandbox mode is on but this platform has no available OS "
+    "confinement (Linux needs bubblewrap; macOS uses sandbox-exec; Windows "
+    "needs AppContainer support). Refusing to run code unconfined — disable "
+    "strict mode or run abax in a VM/container.")
+
 
 class ConsoleBridge:
-    def __init__(self) -> None:
-        self._proc: subprocess.Popen | None = None
+    def __init__(self, strict: bool = False) -> None:
+        self._proc = None
         self._job = None  # Windows Job Object handle (keeps the limits alive)
+        # Strict mode confines the worker's filesystem + network (Phase 3). It's
+        # on when the caller asks OR the environment forces it (so a spawned
+        # worker inherits the parent's decision).
+        self._strict = strict or sandbox.strict_requested()
+        self._scratch: str | None = None
+        self._confinement = sandbox.select_confinement() if self._strict else None
+
+    def strict_unavailable(self) -> bool:
+        """True when strict mode was requested but can't be honored here."""
+        return self._strict and not (self._confinement and self._confinement.available())
 
     def _alive(self) -> bool:
         return self._proc is not None and self._proc.poll() is None
@@ -44,14 +66,35 @@ class ConsoleBridge:
         if env.get("PYTHONPATH"):
             paths.append(env["PYTHONPATH"])
         env["PYTHONPATH"] = os.pathsep.join(paths)
-        kwargs = {}
-        if sys.platform == "win32":
-            kwargs["creationflags"] = 0x08000000  # CREATE_NO_WINDOW
-        self._proc = subprocess.Popen(
-            [sys.executable, "-c", _BOOT],
-            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            env=env, bufsize=0, **kwargs,
-        )
+        creationflags = 0x08000000 if sys.platform == "win32" else 0  # CREATE_NO_WINDOW
+        argv = [sys.executable, "-c", _BOOT]
+
+        if self._strict and self._confinement and self._confinement.available():
+            # Sandbox Phase 3: confine the worker's filesystem + network. Tell
+            # the worker (via env) that strict mode is on and where its one
+            # writable scratch dir is, so it applies any in-child confinement
+            # and runs the fail-closed self-test before executing anything.
+            if self._scratch is None:
+                self._scratch = tempfile.mkdtemp(prefix="abax-sandbox-")
+            env[sandbox.STRICT_ENV] = "1"
+            env[sandbox.SCRATCH_ENV] = self._scratch
+            env = self._confinement.child_env(env, self._scratch)
+            custom = getattr(self._confinement, "custom_spawn", None)
+            if custom is not None:
+                # A strategy that needs a bespoke launcher (Windows AppContainer).
+                self._proc = custom(argv, env, self._scratch, creationflags)
+            else:
+                # A wrapper strategy (Linux bwrap, macOS sandbox-exec).
+                argv = self._confinement.wrap_argv(argv, self._scratch)
+                self._proc = subprocess.Popen(
+                    argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE, env=env, bufsize=0,
+                    creationflags=creationflags)
+        else:
+            self._proc = subprocess.Popen(
+                argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, env=env, bufsize=0,
+                creationflags=creationflags)
         # Sandbox Phase 2 (Windows): cap the worker's memory / CPU time /
         # process count via a Job Object; kill-on-job-close ties the worker's
         # lifetime to this handle, so it dies with the GUI no matter what.
@@ -65,6 +108,11 @@ class ConsoleBridge:
         timeout) returns ``{"crashed": True, ...}`` with the original envelope
         unchanged, so the caller leaves the workbook as-is.
         """
+        if self.strict_unavailable():
+            # Fail closed at the parent: never spawn an unconfined worker when
+            # strict mode was requested but can't be provided.
+            return {"output": "", "error": _STRICT_UNAVAILABLE,
+                    "envelope": payload.get("envelope", {})}
         if not self._alive():
             self._spawn()
         watchdog = None
@@ -82,8 +130,18 @@ class ConsoleBridge:
                 watchdog.cancel()
         if data is None:
             reason = self._dead_reason()
+            dead, self._proc = self._proc, None
             self._close_job()
-            self._proc = None
+            # Revert the dead worker's confinement side effects (Windows profile
+            # + ACL grants) so a crash-and-respawn cycle doesn't leak them; keep
+            # the scratch dir for the replacement worker.
+            if dead is not None and sys.platform == "win32":
+                try:
+                    from ...sandbox_windows import cleanup_process
+
+                    cleanup_process(dead)
+                except Exception:
+                    pass
             return {"output": "", "error": "the console process exited",
                     "envelope": payload.get("envelope", {}), "crashed": True,
                     "stderr": reason}
@@ -135,10 +193,25 @@ class ConsoleBridge:
         job, self._job = self._job, None
         close_windows_job(job)
 
+    def _cleanup_confinement(self, proc) -> None:
+        """Revert per-process confinement side effects (Windows ACL grants +
+        AppContainer profile) and remove the scratch dir."""
+        if proc is not None and sys.platform == "win32":
+            try:
+                from ...sandbox_windows import cleanup_process
+
+                cleanup_process(proc)
+            except Exception:
+                pass
+        if self._scratch is not None:
+            shutil.rmtree(self._scratch, ignore_errors=True)
+            self._scratch = None
+
     def close(self) -> None:
         proc, self._proc = self._proc, None
         if proc is None:
             self._close_job()
+            self._cleanup_confinement(None)
             return
         try:
             if proc.stdin:
@@ -152,3 +225,4 @@ class ConsoleBridge:
                 pass
         finally:
             self._close_job()
+            self._cleanup_confinement(proc)

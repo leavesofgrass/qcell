@@ -131,7 +131,8 @@ class PyConsole(QDialog):
         self.setModal(False)
         from .console_bridge import ConsoleBridge
 
-        self._bridge = ConsoleBridge()
+        self._bridge = ConsoleBridge(
+            strict=getattr(window._settings, "sandbox_strict", False))
         self._thread = None
         self._worker = None
         self._closing = False

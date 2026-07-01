@@ -39,6 +39,7 @@ if _HAS_MSGSPEC:
         last_sheet: int = 0
         last_cell: str = ""
         code_consent: bool = False
+        sandbox_strict: bool = False
         faceplate_assets_dir: str = ""
         faceplate_repo: str = ""
         show_toolbar: bool = True
@@ -79,6 +80,7 @@ else:
         last_sheet: int = 0
         last_cell: str = ""
         code_consent: bool = False
+        sandbox_strict: bool = False
         faceplate_assets_dir: str = ""
         faceplate_repo: str = ""
         show_toolbar: bool = True

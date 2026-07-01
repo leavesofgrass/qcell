@@ -25,6 +25,7 @@ import code
 import contextlib
 import io
 import json
+import os
 import struct
 import sys
 import traceback
@@ -148,8 +149,6 @@ def main() -> None:
     # Reserve the real stdout pipe for framing; discard stray prints (e.g. from
     # imports) so they can't corrupt the frame stream. (User code's own output is
     # captured per-command in handle().) Real errors still go to stderr.
-    import os
-
     out = sys.stdout.buffer
     inp = sys.stdin.buffer
     sys.stdout = open(os.devnull, "w")
@@ -160,6 +159,13 @@ def main() -> None:
     from .proclimits import apply_posix_limits
     apply_posix_limits()
 
+    # Sandbox Phase 3: under strict mode, apply any in-child confinement and then
+    # VERIFY it with a live escape self-test. If confinement isn't actually in
+    # force, refuse to run user code — every command returns an error, never an
+    # execution. This is the fail-closed guarantee: a confinement that didn't
+    # take hold cannot masquerade as a working sandbox.
+    refusal = _confine_or_refuse()
+
     worker = Worker()
     while True:
         raw = _read_frame(inp)
@@ -168,11 +174,33 @@ def main() -> None:
         msg: dict = {}
         try:
             msg = json.loads(raw)
-            resp = worker.dispatch(msg)
+            if refusal is not None:
+                resp = {"output": "", "error": refusal,
+                        "envelope": msg.get("envelope", {})}
+            else:
+                resp = worker.dispatch(msg)
         except Exception:
             resp = {"output": traceback.format_exc(), "error": "worker error",
                     "envelope": msg.get("envelope", {})}
         _write_frame(out, json.dumps(resp).encode("utf-8"))
+
+
+def _confine_or_refuse() -> "str | None":
+    """Apply strict-mode confinement + self-test. Returns None when the worker
+    may run user code, or a refusal message when it must not."""
+    from . import sandbox
+
+    if not sandbox.strict_requested():
+        return None
+    scratch = os.environ.get(sandbox.SCRATCH_ENV, "")
+    try:
+        sandbox.select_confinement().apply_in_child(scratch)
+        sandbox.selftest(scratch)
+    except sandbox.SandboxEscape as exc:
+        return f"strict sandbox refused: {exc}"
+    except Exception as exc:  # noqa: BLE001 - any confinement failure fails closed
+        return f"strict sandbox could not be established: {exc}"
+    return None
 
 
 if __name__ == "__main__":

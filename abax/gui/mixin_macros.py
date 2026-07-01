@@ -20,7 +20,8 @@ class MacroMixin:
         if bridge is None:
             from .console.console_bridge import ConsoleBridge
 
-            bridge = self._macro_bridge = ConsoleBridge()
+            bridge = self._macro_bridge = ConsoleBridge(
+                strict=getattr(self._settings, "sandbox_strict", False))
         return bridge
 
     def _apply_exec_response(self, resp: dict, what: str) -> bool:
