@@ -8,9 +8,9 @@ class ConsoleMixin:
         """One-time consent gate before running untrusted code.
 
         abax's console, terminal, scripts, and macros execute arbitrary code with
-        the user's full privileges — there is no sandbox. Ask once, remember the
-        choice in settings, and otherwise abort the action. (A real sandbox is a
-        planned follow-up; this is the interim safeguard.)
+        the user's full privileges. The console/script/macro worker gives crash
+        and resource isolation, but not a security boundary. Ask once, remember the
+        choice in settings, and otherwise abort the action.
         """
         if getattr(self._settings, "code_consent", False):
             return True
@@ -22,11 +22,13 @@ class ConsoleMixin:
         box.setText(f"{what} runs code with your full user privileges — it can "
                     "read and write your files, network, and system.")
         box.setInformativeText(
-            "The Python console runs in its own sub-process, so a crash or runaway "
-            "there can't take down abax — but this is not a security sandbox. For "
-            "stronger isolation, run abax inside a dedicated Python virtual "
-            "environment. Only continue if you trust the code you'll run; enabling "
-            "this is remembered for future sessions.")
+            "The console, script runner, and macros run in a separate, "
+            "resource-limited worker process, so a crash, hang, or runaway "
+            "allocation there can't take down abax — but this is not a security "
+            "sandbox: the code still runs with your privileges. For untrusted "
+            "code, run abax inside a throwaway VM or container. Only continue if "
+            "you trust the code you'll run; enabling this is remembered for future "
+            "sessions.")
         enable = box.addButton("Enable code execution", QMessageBox.ButtonRole.AcceptRole)
         cancel = box.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
         box.setDefaultButton(cancel)

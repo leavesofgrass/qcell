@@ -84,6 +84,9 @@ class MacroRegistry:
     def __init__(self) -> None:
         self.macros: dict[str, Callable] = {}
         self.functions: dict[str, Callable] = {}
+        # The .py files this registry was loaded from, in load order — the
+        # isolated worker re-loads these by path to run a macro out-of-process.
+        self.sources: list[str] = []
 
     # decorators handed to macro files at exec time
     def macro(self, name: str | Callable | None = None):
@@ -135,6 +138,8 @@ def load_macro_file(path: str | Path, registry: MacroRegistry | None = None) -> 
         exec(compile(code, str(path), "exec"), ns)  # noqa: S102 - trusted macros, not sandboxed
     except Exception as exc:  # surface as a MacroError, keep the rest loadable
         raise MacroError(f"error loading {path.name}: {exc}") from exc
+    if str(path) not in registry.sources:
+        registry.sources.append(str(path))
     return registry
 
 

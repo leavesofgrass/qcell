@@ -1,4 +1,11 @@
-"""MacroMixin — Macros and recording: run/record/replay/save, load macro files, run scripts."""
+"""MacroMixin — Macros and recording: run/record/replay/save, load macro files, run scripts.
+
+Command macros and scripts execute **out-of-process** in the same isolated
+worker as the Python console (sandbox Phase 1) — a crash, runaway allocation,
+or hang there cannot take down the GUI, and the worker is resource-limited
+(Phase 2). Loading a macro/UDF file still executes it in-process (UDFs must be
+callable by the formula engine), which is what the consent gate covers.
+"""
 
 from __future__ import annotations
 
@@ -6,18 +13,48 @@ from ..core.reference import to_a1
 
 
 class MacroMixin:
-    def _run_macro(self, name: str) -> None:
-        from ._qtcompat import QMessageBox
-        from ..macros import MacroError, run_macro
+    def _exec_bridge(self):
+        """The shared bridge to the isolated worker for macros and scripts
+        (lazily created; independent of the console panel's own bridge)."""
+        bridge = getattr(self, "_macro_bridge", None)
+        if bridge is None:
+            from .console.console_bridge import ConsoleBridge
 
-        try:
-            ctx = run_macro(self._macro_registry, name, self._doc.workbook, cursor=self._current_cell())
-        except MacroError as exc:
-            QMessageBox.critical(self, "Macro failed", str(exc))
-            return
+            bridge = self._macro_bridge = ConsoleBridge()
+        return bridge
+
+    def _apply_exec_response(self, resp: dict, what: str) -> bool:
+        """Apply a worker response (envelope + errors) to the document.
+        Returns True when the run succeeded."""
+        from ._qtcompat import QMessageBox
+
+        if resp.get("crashed"):
+            reason = resp.get("stderr") or "the worker process exited"
+            QMessageBox.critical(self, what, f"{what} crashed the worker process "
+                                 f"(the GUI is unaffected).\n{reason}")
+            return False
+        if resp.get("error"):
+            QMessageBox.critical(self, what, resp["error"])
+            return False
+        self._doc.workbook.load_envelope(resp["envelope"])
         self._doc.mark_dirty()
         self.refresh_table()
-        self._set_status(f"ran macro {name}" + (f" — {ctx.messages[-1]}" if ctx.messages else ""))
+        return True
+
+    def _run_macro(self, name: str) -> None:
+        registry = self._macro_registry
+        if registry is None or name.lower() not in registry.macros:
+            from ._qtcompat import QMessageBox
+
+            QMessageBox.critical(self, "Macro failed", f"no such macro: {name!r}")
+            return
+        resp = self._exec_bridge().execute_macro(
+            name, registry.sources, self._current_cell(),
+            self._doc.workbook.to_envelope())
+        if not self._apply_exec_response(resp, "Macro"):
+            return
+        out = (resp.get("output") or "").strip().splitlines()
+        self._set_status(f"ran macro {name}" + (f" — {out[-1]}" if out else ""))
 
     def _toggle_recording(self) -> None:
         on = self._recorder.toggle()
@@ -56,7 +93,13 @@ class MacroMixin:
         self._set_status(f"loaded macros from {path}")
 
     def run_script(self) -> None:
-        """Run an arbitrary Python script against the workbook (no sandbox)."""
+        """Run a Python script against the workbook, in the isolated worker.
+
+        The script gets the console namespace (``wb``, ``sheet()``, ``cell``,
+        ``put``, the engineering toolkit, …) in a fresh scope; the workbook
+        crosses as an envelope and comes back with the script's edits. A crash
+        or runaway in the script is contained to the worker process.
+        """
         if not self._require_code_consent("Running a Python script"):
             return
         from ._qtcompat import QFileDialog, QMessageBox
@@ -71,25 +114,10 @@ class MacroMixin:
         except OSError as exc:
             QMessageBox.critical(self, "Run script", str(exc))
             return
-        wb = self._doc.workbook
-        ns = {
-            "__name__": "abax_script",
-            "doc": self._doc,
-            "wb": wb,
-            "sheet": wb.sheet,
-            "cell": lambda ref: wb.sheet.get(ref),
-            "put": lambda ref, val: wb.sheet.set(ref, val if isinstance(val, str) else str(val)),
-            "refresh": self.refresh_table,
-        }
-        try:
-            exec(compile(src, path, "exec"), ns)
-        except Exception:  # noqa: BLE001 - report any script error to the user
-            import traceback
-
-            QMessageBox.critical(self, "Run script", traceback.format_exc())
+        resp = self._exec_bridge().execute_script(
+            src, path, self._doc.workbook.to_envelope())
+        if not self._apply_exec_response(resp, "Run script"):
             return
-        self._doc.mark_dirty()
-        self.refresh_table()
         self._set_status(f"ran script {path}")
 
     def _save_recording(self) -> None:

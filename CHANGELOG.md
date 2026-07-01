@@ -13,6 +13,21 @@ All notable changes to abax are documented here. The format follows
 ## [0.1.3] — 2026-07-01
 
 ### Added
+- **Code-execution sandbox — Phases 1 & 2** (see `dev/sandbox-design.md`). The
+  GUI's **script runner and command macros now run out-of-process** in the same
+  isolated worker as the Python console (`console_worker.py` grew `exec` /
+  `script` / `macro` ops; `ConsoleBridge` grew `execute_script`/`execute_macro`),
+  so a crash, hang, or runaway there is contained and can't take down abax — the
+  in-process `exec()` gap is closed. The worker is now **resource-limited**
+  (`abax/proclimits.py`): a Windows **Job Object** (process-memory / CPU-time /
+  active-process caps + kill-on-job-close) or POSIX **`rlimit`s**
+  (`RLIMIT_AS`/`_CPU`/`_FSIZE`/`_NPROC`), plus a wall-clock **watchdog timeout**
+  in the bridge — an allocation bomb, fork bomb, or infinite loop is killed by
+  the OS instead of wedging the machine. Caps are tunable via `ABAX_WORKER_MEM_MB`
+  / `_CPU_S` / `_FSIZE_MB` / `_PROCS` / `_NPROC` (generous defaults). This is
+  **crash and resource isolation, not a security boundary** — the worker still
+  runs with your privileges; OS filesystem/network confinement (strict mode) is
+  the planned Phase 3. The consent prompt and docs are updated to say so plainly.
 - **Array constants.** Inline literal arrays with braces — `={1,2,3}` (a row),
   `={1;2;3}` (a column), `={1,2;3,4}` (a block). They spill and compose like any
   array: `=SORT({3,1,2})`, `=SUM({1,2,3,4})`, `={1,2,3}*10`.

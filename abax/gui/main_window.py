@@ -568,6 +568,13 @@ class MainWindow(NavigationMixin, DocumentMixin, DocumentIOMixin, SettingsMixin,
                 dock.widget()._shutdown()
             except Exception:
                 pass
+        # ... and the macro/script runner's worker, if one was ever spawned.
+        bridge = getattr(self, "_macro_bridge", None)
+        if bridge is not None:
+            try:
+                bridge.close()
+            except Exception:
+                pass
         self._save_window_state()
         try:
             save_settings(self._settings, rt.CONFIG_DIR / "settings.json")

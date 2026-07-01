@@ -14,19 +14,32 @@ See also: [index](index.md) · [architecture](architecture.md) · [licensing](li
 > connections, and run shell commands. Only load and run code you trust; treat a
 > downloaded macro the way you would treat any executable.
 >
-> The **Python console runs out-of-process and off the UI thread** (a separate
-> worker; the live workbook is shipped to it and back each command), so a crash,
-> hang, or runaway allocation there can't freeze or take down abax — and a runaway
-> command can be **Interrupt**ed (which kills the worker; the next command respawns
-> it). That is **crash/memory isolation, not a security sandbox** — the worker
-> still runs with your full privileges. (Macros and the script runner currently run
-> in-process; a real security sandbox is planned.)
+> In the GUI, the **Python console, the script runner, and command macros all run
+> out-of-process** in a shared isolated worker (the live workbook is shipped to it
+> and back each command), so a crash, hang, or runaway allocation there can't
+> freeze or take down abax — and a runaway command can be **Interrupt**ed (which
+> kills the worker; the next command respawns it). The worker is also
+> **resource-limited**: its memory, CPU time, and process count are capped (a
+> Windows Job Object, or POSIX `rlimit`s), so an allocation bomb or fork bomb is
+> killed by the OS instead of wedging the machine — and the script/macro runner
+> arms a wall-clock timeout as a backstop. The caps are tunable via the
+> `ABAX_WORKER_MEM_MB` / `ABAX_WORKER_CPU_S` / `ABAX_WORKER_PROCS` environment
+> variables (the defaults are generous — big enough for real data-science work).
+>
+> That is **crash and resource isolation, not a security sandbox** — the worker
+> still runs with your full user privileges, so it can read and write your files
+> and reach the network. For untrusted code, run abax inside a throwaway VM or
+> container. (OS-enforced filesystem/network confinement — "strict mode" — is the
+> planned next step; see `dev/sandbox-design.md`.) Loading a macro/UDF *file* still
+> executes it in-process, because a UDF must be callable by the formula engine;
+> that is what the consent gate covers. The CLI (`abax macro run`) and TUI
+> (`:macro`) run macros in-process too — there you are running code you invoked on
+> yourself.
 >
 > The GUI gates all of these behind a one-time **consent prompt**: the first time
 > you open the console/terminal or run a script/macro, abax warns you and asks you
 > to explicitly *Enable code execution*. The choice is remembered per profile (the
-> `code_consent` setting); set it back to `false` to be asked again. (A real
-> sandbox is planned — this consent gate is the interim safeguard.)
+> `code_consent` setting); set it back to `false` to be asked again.
 
 ## The two extension points
 
@@ -174,12 +187,15 @@ rich-display protocol).
 ## Running a script file
 
 *Tools → Run Python script…* runs an arbitrary `.py` against the current
-workbook, after the consent prompt. Unlike the console, a script runs
-**in-process** (no worker isolation). It receives the same core handles —
-`doc`, `wb`, `sheet`, `cell`, `put`, `refresh` — with `__name__ == "abax_script"`.
-On success abax marks the document dirty and refreshes the grid; any exception is
-reported with a traceback. Use this for one-off batch edits over an open
-workbook (a macro is the better choice for anything you'll reuse).
+workbook, after the consent prompt. Like the console, the script runs
+**out-of-process in the isolated, resource-limited worker** — a crash, hang, or
+runaway is contained, and it can't take the GUI down. It runs in a *fresh*
+namespace (console variables don't leak in) with the console handles —
+`wb`, `sheet()`, `cell`, `put`, plus the engineering/data-science toolkit — and
+`__name__ == "abax_script"`; the workbook crosses as an envelope and its edits are
+applied on return. On success abax marks the document dirty and refreshes the
+grid; any exception is reported with a traceback. Use this for one-off batch edits
+over an open workbook (a macro is the better choice for anything you'll reuse).
 
 ## Discovery and loading
 

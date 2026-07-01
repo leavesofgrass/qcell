@@ -1,13 +1,20 @@
-"""Out-of-process worker for the sandboxed Python console.
+"""Out-of-process worker for isolated code execution (console, scripts, macros).
 
 Spawned by :mod:`abax.gui.console.console_bridge` as a child process
 (``python -c "from abax.console_worker import main; main()"``). It runs user code
-in a separate process — crash isolation now, and a seam for OS-level confinement
-later. The live workbook is shipped in and out as an envelope each command, so the
-child never touches the GUI.
+in a separate process — crash isolation plus OS resource limits (see
+:mod:`abax.proclimits`), and the seam for OS-level confinement later. The live
+workbook is shipped in and out as an envelope each command, so the child never
+touches the GUI.
+
+This is the **single execution choke point** (sandbox Phase 1): the console
+REPL, the script runner, and command macros all run here, each as its own op.
 
 Wire protocol (length-prefixed JSON, 4-byte big-endian length):
-  request  = {"code": str, "envelope": dict}
+  request  = {"op": "exec",   "code": str, "envelope": dict}            (default)
+           | {"op": "script", "code": str, "path": str, "envelope": dict}
+           | {"op": "macro",  "macro": str, "files": [str], "cursor": [r, c]|None,
+              "envelope": dict}
   response = {"output": str, "error": str|None, "envelope": dict}
 """
 
@@ -67,6 +74,55 @@ class Worker:
             sys.displayhook = prev_hook
         return {"output": buf.getvalue(), "error": None, "envelope": wb.to_envelope()}
 
+    def handle_script(self, source: str, path: str, envelope: dict) -> dict:
+        """Run a whole script file against the workbook, in a fresh namespace
+        (scripts don't share the console's persistent variables)."""
+        wb = Workbook.from_envelope(envelope)
+        ns = build_namespace(wb, refresh=lambda: None)  # parent refreshes after
+        ns["__name__"] = "abax_script"
+        ns["__file__"] = path
+        buf = io.StringIO()
+        error = None
+        try:
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+                exec(compile(source, path or "<script>", "exec"), ns)  # noqa: S102
+        except BaseException:                    # report, never die
+            error = traceback.format_exc()
+        return {"output": buf.getvalue(), "error": error, "envelope": wb.to_envelope()}
+
+    def handle_macro(self, name: str, files: list, cursor, envelope: dict) -> dict:
+        """Load the given macro files into a fresh registry and run one macro
+        against the workbook. The macro's ctx.log messages join the output."""
+        from .macros import MacroError, MacroRegistry, load_macro_file, run_macro
+
+        wb = Workbook.from_envelope(envelope)
+        buf = io.StringIO()
+        error = None
+        try:
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+                registry = MacroRegistry()
+                for f in files or []:
+                    load_macro_file(f, registry)
+                at = tuple(cursor) if cursor else None
+                ctx = run_macro(registry, name, wb, cursor=at)
+                for message in ctx.messages:
+                    buf.write(message + "\n")
+        except MacroError as exc:
+            error = str(exc)
+        except BaseException:                    # report, never die
+            error = traceback.format_exc()
+        return {"output": buf.getvalue(), "error": error, "envelope": wb.to_envelope()}
+
+    def dispatch(self, msg: dict) -> dict:
+        op = msg.get("op", "exec")
+        if op == "script":
+            return self.handle_script(msg.get("code", ""), msg.get("path", ""),
+                                      msg.get("envelope", {}))
+        if op == "macro":
+            return self.handle_macro(msg.get("macro", ""), msg.get("files", []),
+                                     msg.get("cursor"), msg.get("envelope", {}))
+        return self.handle(msg.get("code", ""), msg.get("envelope", {}))
+
 
 def _read_frame(stream) -> bytes | None:
     header = stream.read(4)
@@ -98,6 +154,12 @@ def main() -> None:
     inp = sys.stdin.buffer
     sys.stdout = open(os.devnull, "w")
 
+    # Sandbox Phase 2: cap memory / CPU / file size / process count so a
+    # runaway is killed by the OS. (On Windows the parent assigns a Job
+    # Object instead — see abax.proclimits and the console bridge.)
+    from .proclimits import apply_posix_limits
+    apply_posix_limits()
+
     worker = Worker()
     while True:
         raw = _read_frame(inp)
@@ -106,7 +168,7 @@ def main() -> None:
         msg: dict = {}
         try:
             msg = json.loads(raw)
-            resp = worker.handle(msg.get("code", ""), msg.get("envelope", {}))
+            resp = worker.dispatch(msg)
         except Exception:
             resp = {"output": traceback.format_exc(), "error": "worker error",
                     "envelope": msg.get("envelope", {})}
