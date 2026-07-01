@@ -123,10 +123,10 @@ def test_tab_completion_single_match():
 def test_tab_completion_common_prefix():
     ed = TuiEditor(Document())
     ed.begin_insert()
-    ed.edit_buf = "=AVE"
+    ed.edit_buf = "=AVERAGEI"
     ed.complete()
-    # AVERAGE, AVERAGEIF -> common prefix AVERAGE
-    assert ed.edit_buf == "=AVERAGE"
+    # AVERAGEIF, AVERAGEIFS -> common prefix AVERAGEIF
+    assert ed.edit_buf == "=AVERAGEIF"
     assert len(ed.completions) > 1
 
 
