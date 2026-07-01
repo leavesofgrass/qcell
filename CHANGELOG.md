@@ -11,6 +11,10 @@ All notable changes to abax are documented here. The format follows
 ## [Unreleased]
 
 ### Changed
+- **First-run optional-features chooser is truly one-shot.** Dismissing it via the
+  window's close button or Esc (not just the Install / Skip buttons) now also marks
+  it seen, so it never auto-opens again — matching the code-consent / terminal gate.
+  It stays reachable on demand via *Tools → Install optional features*.
 - **RF reference panel sends values to the grid** (like the calculator) — the bands
   / CTCSS dialog is now non-modal, and double-clicking a value (or selecting it and
   pressing "Send to cell") writes it into the current grid cell(s) as one undoable

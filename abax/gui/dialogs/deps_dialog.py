@@ -119,12 +119,19 @@ class DependencyChooser(QDialog):
         except Exception:
             pass
 
+    def done(self, result: int) -> None:  # noqa: N802 (Qt override)
+        # One-shot, like the code-consent / terminal gate: however the chooser is
+        # dismissed — Install, Skip, Esc, or the window's close button — don't
+        # auto-open it again. It stays reachable on demand via
+        # Tools -> Install optional features.
+        self._mark_prompted()
+        super().done(result)
+
     def _install(self) -> list[str]:
         autodeps.set_enabled(True)
         started: list[str] = []
         for key in self.selected():
             started += autodeps.ensure_feature(key)
-        self._mark_prompted()
         if self._win is not None and hasattr(self._win, "_set_status"):
             if started:
                 self._win._set_status(
@@ -136,8 +143,7 @@ class DependencyChooser(QDialog):
         return started
 
     def _skip(self) -> None:
-        self._mark_prompted()                        # don't nag again; reopen via Tools
-        self.reject()
+        self.reject()                                # done() marks it prompted
 
 
 def maybe_prompt(window) -> None:

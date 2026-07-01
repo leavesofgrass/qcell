@@ -84,6 +84,16 @@ def test_skip_marks_prompted_without_installing(win, no_pip):
     assert no_pip == []
 
 
+def test_closing_via_x_or_esc_marks_prompted(win, no_pip):
+    # The gap this fixes: dismissing the chooser via the window's close button or
+    # Esc goes through reject() (not the Skip button), and must still be one-shot
+    # so the first-run prompt never auto-opens again.
+    dlg = _dlg(win)
+    dlg.reject()                                     # simulates X / Esc
+    assert win._settings.deps_prompted is True
+    assert no_pip == []
+
+
 def test_maybe_prompt_respects_flags(win, monkeypatch):
     from abax.gui.dialogs import deps_dialog
 
