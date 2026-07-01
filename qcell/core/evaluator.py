@@ -13,12 +13,29 @@ from typing import Any, Callable
 
 from . import ast_nodes as A
 from .errors import CellError, FormulaError, is_error
-from .functions import FUNCTIONS, LAZY_FUNCTIONS
+from .functions import CONTEXT_FUNCTIONS, FUNCTIONS, LAZY_FUNCTIONS
 from .reference import parse_a1, parse_range
 from .tokenizer import Token  # noqa: F401  (re-export convenience)
 from .values import RangeValue
 
 Resolver = Callable[[str, int, int], Any]  # (sheet_name, row, col) -> value
+
+
+class EvalContext:
+    """The calling cell's context, passed to reference/context functions (ROW,
+    COLUMN, OFFSET, INDIRECT, ...). ``row``/``col`` are 0-based; ``resolver`` is the
+    same ``(sheet, r, c) -> value`` the evaluator uses; ``eval(node)`` evaluates an
+    argument node on demand (carrying this context onward)."""
+
+    __slots__ = ("resolver", "row", "col")
+
+    def __init__(self, resolver: Resolver, row: int, col: int) -> None:
+        self.resolver = resolver
+        self.row = row
+        self.col = col
+
+    def eval(self, node: Any) -> Any:
+        return evaluate(node, self.resolver, self)
 
 
 def _num(v: Any) -> float | CellError:
@@ -72,7 +89,7 @@ def _text_for_cmp(v: Any) -> str:
     return str(v)
 
 
-def evaluate(node: Any, resolver: Resolver) -> Any:
+def evaluate(node: Any, resolver: Resolver, ctx: "EvalContext | None" = None) -> Any:
     # Ordered by frequency in real recalc (Ref/Number/Binary/Func dominate), so
     # the common cases short-circuit early. A type->handler dict was measured
     # *slower* here: isinstance on a short chain is cheap C-level work, while
@@ -83,9 +100,9 @@ def evaluate(node: Any, resolver: Resolver) -> Any:
     if isinstance(node, A.Number):
         return node.value
     if isinstance(node, A.Binary):
-        return _eval_binary(node, resolver)
+        return _eval_binary(node, resolver, ctx)
     if isinstance(node, A.Func):
-        return _eval_func(node, resolver)
+        return _eval_func(node, resolver, ctx)
     if isinstance(node, A.String):
         return node.value
     if isinstance(node, A.Range):
@@ -101,7 +118,7 @@ def evaluate(node: Any, resolver: Resolver) -> Any:
             return False
         return CellError(CellError.NAME, node.text)
     if isinstance(node, A.Unary):
-        val = evaluate(node.operand, resolver)
+        val = evaluate(node.operand, resolver, ctx)
         if is_error(val):
             return val
         n = _num(val)
@@ -113,10 +130,10 @@ def evaluate(node: Any, resolver: Resolver) -> Any:
     raise FormulaError(f"cannot evaluate node: {node!r}")
 
 
-def _eval_binary(node: A.Binary, resolver: Resolver) -> Any:
+def _eval_binary(node: A.Binary, resolver: Resolver, ctx: "EvalContext | None" = None) -> Any:
     op = node.op
-    left = evaluate(node.left, resolver)
-    right = evaluate(node.right, resolver)
+    left = evaluate(node.left, resolver, ctx)
+    right = evaluate(node.right, resolver, ctx)
     # A range or array used as a scalar operand is an error.
     if isinstance(left, (list, RangeValue)) or isinstance(right, (list, RangeValue)):
         return CellError(CellError.VALUE)
@@ -151,18 +168,29 @@ def _eval_binary(node: A.Binary, resolver: Resolver) -> Any:
     raise FormulaError(f"unknown operator: {op}")
 
 
-def _eval_func(node: A.Func, resolver: Resolver) -> Any:
+def _eval_func(node: A.Func, resolver: Resolver, ctx: "EvalContext | None" = None) -> Any:
     name = node.name
     # Lazy functions (IF, IFERROR, IFS, SWITCH, CHOOSE) receive unevaluated AST
     # nodes plus an on-demand evaluator, so untaken branches never run.
     lazy = LAZY_FUNCTIONS.get(name)
     if lazy is not None:
-        return lazy(node.args, lambda n: evaluate(n, resolver))
+        return lazy(node.args, lambda n: evaluate(n, resolver, ctx))
+
+    # Context/reference functions (ROW, COLUMN, OFFSET, INDIRECT, ...) need the raw
+    # argument AST (a reference, not its value) plus the calling cell.
+    ctxfn = CONTEXT_FUNCTIONS.get(name)
+    if ctxfn is not None:
+        if ctx is None:
+            ctx = EvalContext(resolver, 0, 0)
+        try:
+            return ctxfn(node.args, ctx)
+        except (ValueError, TypeError, ZeroDivisionError, IndexError, OverflowError):
+            return CellError(CellError.VALUE)
 
     fn = FUNCTIONS.get(name)
     if fn is None:
         return CellError(CellError.NAME, name)
-    args = [evaluate(a, resolver) for a in node.args]
+    args = [evaluate(a, resolver, ctx) for a in node.args]
     try:
         return fn(args)
     except (ValueError, TypeError, ZeroDivisionError, IndexError, OverflowError):

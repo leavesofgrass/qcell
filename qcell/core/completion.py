@@ -13,9 +13,9 @@ from __future__ import annotations
 
 def function_names() -> list[str]:
     """All callable function names (built-ins + UDFs), sorted."""
-    from .functions import FUNCTIONS, LAZY_FUNCTIONS
+    from .functions import CONTEXT_FUNCTIONS, FUNCTIONS, LAZY_FUNCTIONS
 
-    return sorted(set(FUNCTIONS) | set(LAZY_FUNCTIONS))
+    return sorted(set(FUNCTIONS) | set(LAZY_FUNCTIONS) | set(CONTEXT_FUNCTIONS))
 
 
 def _in_string(text: str, cursor: int) -> bool:
@@ -185,7 +185,7 @@ SIGNATURES = {
 # so the browser and completion show argument hints. A missing/broken pack is
 # skipped (same policy as the registry).
 for _pack in ("math_fns", "stats_dist", "text_datetime_fns", "finance_fns",
-              "engineering_fns"):
+              "engineering_fns", "reffuncs"):
     try:
         _mod = __import__(f"qcell.core.{_pack}", fromlist=["SIGNATURES"])
         SIGNATURES.update(getattr(_mod, "SIGNATURES", {}))

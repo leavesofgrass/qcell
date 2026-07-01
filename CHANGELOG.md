@@ -86,6 +86,12 @@ All notable changes to qcell are documented here. The format follows
   speed.
 
 ### Added
+- **Reference / context functions** — `ROW`, `COLUMN`, `ROWS`, `COLUMNS`, `OFFSET`,
+  `INDIRECT` and `ADDRESS` (`core/reffuncs.py`). These need the *calling cell* and the
+  raw argument **reference** (ROW(A1) is 1, not A1's value), so the evaluator gained a
+  third calling convention: an `EvalContext` (the 0-based calling cell + resolver) is
+  threaded through evaluation and handed to a `CONTEXT_FUNCTIONS` registry. OFFSET and
+  INDIRECT return live ranges that compose inside aggregates (`SUM(OFFSET(A1,0,0,3,1))`).
 - **~180 new formula functions toward Excel / Gnumeric parity** (223 → 405) across
   five pure-stdlib packs, each registered into the `functions/` package:
   - **Math / trig / info** (`core/math_fns.py`, 43): hyperbolic & reciprocal trig

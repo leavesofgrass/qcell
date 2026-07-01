@@ -204,3 +204,13 @@ for _dotted, _canon in {
 }.items():
     if _canon in FUNCTIONS:
         FUNCTIONS[_dotted] = FUNCTIONS[_canon]
+
+# Context/reference functions (ROW, COLUMN, OFFSET, INDIRECT, ...) use a third
+# calling convention: they receive the raw argument AST plus an EvalContext (the
+# calling cell + resolver), so they can see references rather than values.
+CONTEXT_FUNCTIONS: dict = {}
+try:
+    from .. import reffuncs as _reffuncs  # noqa: E402
+    _reffuncs.register(CONTEXT_FUNCTIONS)
+except Exception:  # noqa: BLE001
+    pass

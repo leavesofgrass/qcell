@@ -15,7 +15,7 @@ from typing import Any, Iterator
 
 from .cells import Cell
 from .errors import CellError, FormulaError
-from .evaluator import evaluate
+from .evaluator import EvalContext, evaluate
 from .parser import parse
 from .reference import parse_a1, to_a1
 
@@ -232,7 +232,7 @@ class Sheet:
                 else:
                     ast = _resolve_names(ast, names)
                     self._rast_cache[key] = (ver, ast)
-            val = evaluate(ast, self._resolve)
+            val = evaluate(ast, self._resolve, EvalContext(self._resolve, row, col))
         except FormulaError:
             val = CellError(CellError.NAME)
         except RecursionError:
