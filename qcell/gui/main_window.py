@@ -407,6 +407,7 @@ class MainWindow(NavigationMixin, DocumentMixin, DocumentIOMixin, SettingsMixin,
         self._act(m_sci, "M&L tool (PCA / k-means / regression)...", self.show_ml_tool)
         self._act(m_sci, "&RF toolkit...", self.show_rf_tool)
         self._act(m_sci, "Smith &chart...", self.show_smith_chart)
+        self._act(m_sci, "RF re&ference (bands / CTCSS)...", self.show_rf_reference)
         self._act(m_sci, "&Antenna pattern...", self.show_antenna_pattern)
         self._act(m_sci, "&I/Q constellation -> SVG", self.export_iq_svg)
         self._act(m_sci, "Solve &NEC deck (PyNEC)...", self.solve_nec_pynec)

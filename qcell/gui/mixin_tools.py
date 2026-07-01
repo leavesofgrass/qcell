@@ -288,6 +288,12 @@ class ToolsMixin:
 
         AntennaDialog(self).exec()
 
+    def show_rf_reference(self) -> None:
+        """Open the RF reference panel (amateur bands + CTCSS tones)."""
+        from .dialogs.rf_reference_dialog import RfReferenceDialog
+
+        RfReferenceDialog(self).exec()
+
     def solve_nec_pynec(self) -> None:
         """Solve a NEC deck with PyNEC (reference-grade) if it is installed.
 

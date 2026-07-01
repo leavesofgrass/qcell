@@ -113,6 +113,7 @@ class PaletteMixin:
             "Install optional features now": self.install_optional_features,
             "RF toolkit...": self.show_rf_tool,
             "Smith chart...": self.show_smith_chart,
+            "RF reference (bands / CTCSS)...": self.show_rf_reference,
             "Antenna pattern...": self.show_antenna_pattern,
             "Python console...": self.show_pyconsole,
             "Graph...": self.show_graph,
