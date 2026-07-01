@@ -1839,3 +1839,10 @@ FUNCTIONS.update({
     "RADRESIST": _ant_radres,
     "RESONANTLEN": _ant_resonant,
 })
+
+# Modern array functions (XLOOKUP/UNIQUE/SORT/FILTER/SEQUENCE) live in their own
+# module and register themselves here. They return plain lists (no grid "spill"),
+# which compose inside aggregates via _flatten.
+from . import arrayfuncs as _arrayfuncs  # noqa: E402
+
+_arrayfuncs.register(FUNCTIONS)
