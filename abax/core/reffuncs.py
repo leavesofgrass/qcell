@@ -147,6 +147,124 @@ def _address(args, ctx):
     return addr
 
 
+def _ref_target(node) -> "tuple[str, int, int] | None":
+    """(sheet, row, col) of a reference node's top-left cell, else None."""
+    if isinstance(node, (A.Ref, A.SpillRef)):
+        r, c = parse_a1(node.text)
+        return node.sheet, r, c
+    if isinstance(node, A.Range):
+        r1, c1, _r2, _c2 = parse_range(node.text)
+        return node.sheet, r1, c1
+    return None
+
+
+def _is_ref_node(node) -> bool:
+    return isinstance(node, (A.Ref, A.Range, A.SpillRef))
+
+
+def _isref(args, ctx):
+    """ISREF(value) — TRUE when the argument is a reference (not its value)."""
+    if not args:
+        return CellError(CellError.VALUE)
+    return _is_ref_node(args[0])
+
+
+def _cell_source(args, ctx):
+    """The raw source text of the cell referenced by ``args[0]`` (or an error)."""
+    if not args:
+        return CellError(CellError.VALUE)
+    tgt = _ref_target(args[0])
+    if tgt is None:
+        return CellError(CellError.VALUE)  # Excel wants a reference here
+    if ctx.source is None:
+        return CellError(CellError.NA)     # bare evaluator: no sheet behind us
+    raw = ctx.source(*tgt)
+    if raw is None:
+        return CellError(CellError.REF)    # unknown sheet
+    return raw
+
+
+def _isformula(args, ctx):
+    """ISFORMULA(reference) — TRUE when the referenced cell holds a formula."""
+    raw = _cell_source(args, ctx)
+    if is_error(raw):
+        return raw
+    return raw.startswith("=")
+
+
+def _formulatext(args, ctx):
+    """FORMULATEXT(reference) — the referenced cell's formula text, or #N/A."""
+    raw = _cell_source(args, ctx)
+    if is_error(raw):
+        return raw
+    return raw if raw.startswith("=") else CellError(CellError.NA)
+
+
+def _sheet_fn(args, ctx):
+    """SHEET([value]) — 1-based index of the calling sheet, of a reference's
+    sheet, or of a sheet named by a string value."""
+    if ctx.sheet_info is None:
+        return CellError(CellError.NA)
+    name = ""
+    if args:
+        if _is_ref_node(args[0]):
+            name = args[0].sheet  # "" -> the calling sheet
+        else:
+            v = ctx.eval(args[0])
+            if is_error(v):
+                return v
+            name = _text(v)
+    info = ctx.sheet_info(name)
+    return float(info[0]) if info else CellError(CellError.NA)
+
+
+def _sheets_fn(args, ctx):
+    """SHEETS([reference]) — the workbook's sheet count (a plain reference
+    spans one sheet)."""
+    if ctx.sheet_info is None:
+        return CellError(CellError.NA)
+    if args:
+        return 1.0 if _is_ref_node(args[0]) else CellError(CellError.VALUE)
+    info = ctx.sheet_info("")
+    return float(info[1]) if info else CellError(CellError.NA)
+
+
+def _cell_fn(args, ctx):
+    """CELL(info_type, [reference]) — the common info types: address, row,
+    col, contents, type, filename (always "" — no file path in core)."""
+    if not args:
+        return CellError(CellError.VALUE)
+    v = ctx.eval(args[0])
+    if is_error(v):
+        return v
+    info = _text(v).strip().lower()
+    if len(args) > 1:
+        tgt = _ref_target(args[1])
+        if tgt is None:
+            return CellError(CellError.VALUE)
+        sheet, r, c = tgt
+    else:
+        sheet, r, c = "", ctx.row, ctx.col
+    if info == "address":
+        addr = f"${index_to_col(c)}${r + 1}"
+        return f"{sheet}!{addr}" if sheet else addr
+    if info == "row":
+        return float(r + 1)
+    if info == "col":
+        return float(c + 1)
+    if info == "contents":
+        val = ctx.resolver(sheet, r, c)
+        return 0.0 if val is None or val == "" else val
+    if info == "type":
+        val = ctx.resolver(sheet, r, c)
+        if val is None or val == "":
+            return "b"
+        return "l" if isinstance(val, str) else "v"
+    if info == "filename":
+        return ""
+    return CellError(CellError.VALUE)
+
+
 SIGNATURES = {
     "ROW": "ROW([reference])",
     "COLUMN": "COLUMN([reference])",
@@ -155,6 +273,12 @@ SIGNATURES = {
     "OFFSET": "OFFSET(reference, rows, cols, [height], [width])",
     "INDIRECT": "INDIRECT(ref_text, [a1=TRUE])",
     "ADDRESS": "ADDRESS(row, column, [abs_num=1], [a1=TRUE], [sheet])",
+    "ISREF": "ISREF(value)",
+    "ISFORMULA": "ISFORMULA(reference)",
+    "FORMULATEXT": "FORMULATEXT(reference)",
+    "SHEET": "SHEET([value])",
+    "SHEETS": "SHEETS([reference])",
+    "CELL": "CELL(info_type, [reference])",
 }
 
 
@@ -162,4 +286,6 @@ def register(context_functions: dict) -> None:
     context_functions.update({
         "ROW": _row, "COLUMN": _column, "ROWS": _rows, "COLUMNS": _columns,
         "OFFSET": _offset, "INDIRECT": _indirect, "ADDRESS": _address,
+        "ISREF": _isref, "ISFORMULA": _isformula, "FORMULATEXT": _formulatext,
+        "SHEET": _sheet_fn, "SHEETS": _sheets_fn, "CELL": _cell_fn,
     })

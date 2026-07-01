@@ -91,8 +91,8 @@ Function names are case-insensitive. Below, every built-in is grouped by
 family with its signature, a one-line description, and an example. Optional
 arguments are shown in `[brackets]`. There are **over 550 built-in functions** —
 **562 eager** (counting aliases and modern dotted names), **6 lazy** control-flow
-functions, and **7 reference/context** functions (`ROW`, `OFFSET`, `INDIRECT`, …)
-— **575 names** in all; user macros can add more (see the
+functions, and **13 reference/context** functions (`ROW`, `OFFSET`, `INDIRECT`,
+`CELL`, …) — **581 names** in all; user macros can add more (see the
 [UDFs](#user-defined-functions-udfs) note).
 
 Coverage spans the everyday Excel / Gnumeric set: math and trigonometry
@@ -484,6 +484,12 @@ that composes inside aggregates (`=SUM(OFFSET(A1,0,0,3,1))`).
 | `OFFSET` | Reference shifted from a base cell | `OFFSET(reference, rows, cols, [height], [width])` | `=OFFSET(A1,1,1)` | cell `B2` |
 | `INDIRECT` | Reference from a text string | `INDIRECT(ref_text, [a1])` | `=INDIRECT("A"&2)` | value of `A2` |
 | `ADDRESS` | Build an address string | `ADDRESS(row, col, [abs], [a1], [sheet])` | `=ADDRESS(2,3)` | `$C$2` |
+| `ISREF` | TRUE when the argument is a reference | `ISREF(value)` | `=ISREF(A1)` | `TRUE` |
+| `ISFORMULA` | TRUE when the referenced cell holds a formula | `ISFORMULA(reference)` | `=ISFORMULA(D1)` | `TRUE`/`FALSE` |
+| `FORMULATEXT` | The referenced cell's formula text (`#N/A` if none) | `FORMULATEXT(reference)` | `=FORMULATEXT(D1)` | `=SUM(A1:A3)` |
+| `SHEET` | 1-based sheet index (of the caller, a reference, or a named sheet) | `SHEET([value])` | `=SHEET("Data")` | `2` |
+| `SHEETS` | Sheet count of the workbook | `SHEETS([reference])` | `=SHEETS()` | `2` |
+| `CELL` | Cell info: `address` / `row` / `col` / `contents` / `type` / `filename` | `CELL(info_type, [reference])` | `=CELL("address",C4)` | `$C$4` |
 
 For `VLOOKUP`/`HLOOKUP` the 4th argument defaults to **TRUE** (approximate,
 assumes ascending order); pass `FALSE` for an exact match. `MATCH` defaults to

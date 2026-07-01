@@ -67,6 +67,53 @@ def test_address(grid):
 def test_is_function_recognizes_context_names():
     from abax.core.completion import is_function, signature
 
-    for name in ("ROW", "OFFSET", "INDIRECT", "ADDRESS"):
+    for name in ("ROW", "OFFSET", "INDIRECT", "ADDRESS",
+                 "ISREF", "ISFORMULA", "FORMULATEXT", "SHEET", "SHEETS", "CELL"):
         assert is_function(name)
         assert signature(name).startswith(name + "(")
+
+
+# --- the info half (ISREF / ISFORMULA / FORMULATEXT / SHEET / SHEETS / CELL) --
+
+
+def test_isref(grid):
+    assert _put_get(grid, "=ISREF(A1)") is True
+    assert _put_get(grid, "=ISREF(A1:C3)") is True
+    assert _put_get(grid, "=ISREF(42)") is False
+    assert _put_get(grid, '=ISREF("A1")') is False   # a string is not a reference
+
+
+def test_isformula_and_formulatext(grid):
+    grid.set("D1", "=SUM(A1:A3)")
+    grid.set("D2", "plain text")
+    assert _put_get(grid, "=ISFORMULA(D1)") is True
+    assert _put_get(grid, "=ISFORMULA(D2)") is False
+    assert _put_get(grid, "=ISFORMULA(D9)") is False          # empty cell
+    assert _put_get(grid, "=FORMULATEXT(D1)") == "=SUM(A1:A3)"
+    out = _put_get(grid, "=FORMULATEXT(D2)")                   # not a formula
+    assert "N/A" in str(out).upper()
+
+
+def test_sheet_and_sheets(grid):
+    wb = grid.workbook
+    wb.add_sheet("Data")
+    assert _put_get(grid, "=SHEET()") == 1.0
+    assert _put_get(grid, '=SHEET("Data")') == 2.0
+    assert "N/A" in str(_put_get(grid, '=SHEET("Nope")')).upper()
+    assert _put_get(grid, "=SHEETS()") == 2.0
+    assert _put_get(grid, "=SHEETS(A1)") == 1.0
+
+
+def test_cell_info_types(grid):
+    assert _put_get(grid, '=CELL("address",C4)') == "$C$4"
+    assert _put_get(grid, '=CELL("row",C4)') == 4.0
+    assert _put_get(grid, '=CELL("col",C4)') == 3.0
+    assert _put_get(grid, '=CELL("contents",A2)') == 20
+    assert _put_get(grid, '=CELL("contents",D9)') == 0.0       # empty -> 0
+    assert _put_get(grid, '=CELL("type",A1)') == "v"
+    assert _put_get(grid, '=CELL("type",D9)') == "b"
+    grid.set("D2", "label")
+    assert _put_get(grid, '=CELL("type",D2)') == "l"
+    # No reference -> the calling cell itself.
+    assert _put_get(grid, '=CELL("address")', at="F5") == "$F$5"
+    assert "VALUE" in str(_put_get(grid, '=CELL("nope",A1)')).upper()

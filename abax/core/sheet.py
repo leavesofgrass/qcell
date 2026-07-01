@@ -339,7 +339,8 @@ class Sheet:
                     ast = _resolve_names(ast, names)
                     self._rast_cache[key] = (ver, ast)
             val = evaluate(ast, self._resolve,
-                           EvalContext(self._resolve, row, col, self._resolve_spill))
+                           EvalContext(self._resolve, row, col, self._resolve_spill,
+                                       self._resolve_source, self._sheet_info))
         except FormulaError:
             val = CellError(CellError.NAME)
         except RecursionError:
@@ -359,6 +360,35 @@ class Sheet:
         if target._spill_dirty:
             target._sync_spills()
         return target._spill_grid.get((row, col))
+
+    def _resolve_source(self, sheet_name: str, row: int, col: int) -> "str | None":
+        """Raw cell-source lookup for ISFORMULA / FORMULATEXT / CELL: the cell's
+        input text on ``sheet_name`` (this sheet if empty), or None for an
+        unknown sheet."""
+        target = self
+        if sheet_name:
+            target = self.workbook.get_sheet(sheet_name) if self.workbook is not None else None
+            if target is None:
+                return None
+        return target.get_raw(row, col)
+
+    def _sheet_info(self, sheet_name: str = "") -> "tuple[int, int] | None":
+        """(1-based sheet index, sheet count) for SHEET / SHEETS. Empty name =
+        this sheet; an unknown name returns None (-> #N/A)."""
+        if self.workbook is None:
+            if not sheet_name or sheet_name.lower() == self.name.lower():
+                return (1, 1)
+            return None
+        sheets = self.workbook.sheets
+        if not sheet_name:
+            for i, sh in enumerate(sheets):
+                if sh is self:
+                    return (i + 1, len(sheets))
+            return (1, len(sheets))
+        for i, sh in enumerate(sheets):
+            if sh.name.lower() == sheet_name.lower():
+                return (i + 1, len(sheets))
+        return None
 
     # --- dynamic-array spill ---------------------------------------------
 

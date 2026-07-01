@@ -97,6 +97,13 @@ All notable changes to abax are documented here. The format follows
     **`F.TEST`** and **`CHISQ.TEST`** (with the `ZTEST`/`FTEST`/`CHITEST`
     legacy aliases), and the `FORECAST.LINEAR`/`SKEW.P`/`GAMMALN.PRECISE`
     dotted aliases.
+  - **The info half of the context family** (`core/reffuncs.py`; 575 → **581
+    names**): **`ISREF`**, **`ISFORMULA`**, **`FORMULATEXT`**, **`SHEET`**,
+    **`SHEETS`** and **`CELL`** (`address`/`row`/`col`/`contents`/`type`/
+    `filename`). These see the raw *reference* and the calling cell, so
+    `EvalContext` gained two optional hooks the `Sheet` provides: a raw
+    cell-source lookup (backing `ISFORMULA`/`FORMULATEXT`/`CELL`) and a
+    sheet-index/count lookup (backing `SHEET`/`SHEETS`).
 - **HP-16C: the immediate bit/word keys are implemented** (were stubs) — `MASKL`,
   `MASKR`, `#B` (bit count), `ABS`, `ASR`, `RMD`, `1's`/`2's` complement, `SB`/
   `CB`/`B?` (set/clear/test bit) and `RLn`/`RRn`. Programming-mode keys (GTO/GSB/

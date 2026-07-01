@@ -27,9 +27,10 @@ class EvalContext:
     same ``(sheet, r, c) -> value`` the evaluator uses; ``eval(node)`` evaluates an
     argument node on demand (carrying this context onward)."""
 
-    __slots__ = ("resolver", "row", "col", "spill")
+    __slots__ = ("resolver", "row", "col", "spill", "source", "sheet_info")
 
-    def __init__(self, resolver: Resolver, row: int, col: int, spill: Any = None) -> None:
+    def __init__(self, resolver: Resolver, row: int, col: int, spill: Any = None,
+                 source: Any = None, sheet_info: Any = None) -> None:
         self.resolver = resolver
         self.row = row
         self.col = col
@@ -37,6 +38,14 @@ class EvalContext:
         # range anchored at a cell (backs the ``A1#`` operator). None outside a
         # Sheet (e.g. bare-evaluator unit tests) -> ``A1#`` yields #REF!.
         self.spill = spill
+        # Optional ``(sheet, row, col) -> str | None`` lookup for a cell's raw
+        # source text (backs ISFORMULA / FORMULATEXT / CELL). None outside a
+        # Sheet -> those functions yield #N/A.
+        self.source = source
+        # Optional ``(sheet_name) -> (index, count) | None`` lookup — the
+        # 1-based index of the named sheet ("" = the calling sheet) and the
+        # workbook's sheet count. Backs SHEET / SHEETS; None outside a Sheet.
+        self.sheet_info = sheet_info
 
     def eval(self, node: Any) -> Any:
         return evaluate(node, self.resolver, self)
