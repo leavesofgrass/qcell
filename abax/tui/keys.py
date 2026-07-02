@@ -4,6 +4,29 @@ from __future__ import annotations
 
 from .editor import TuiEditor
 
+_ARROW_TO_VI: "dict[int, str] | None" = None
+
+
+def _arrow_vi(ch) -> "str | None":
+    """Map a curses arrow key code to the equivalent vi navigation char.
+
+    ``curses``' ``get_wch()`` returns special keys (arrows, page-up, …) as
+    *ints*, not strings. Translate the four arrows to ``h``/``j``/``k``/``l`` so
+    they drive the same sheet/list navigation as the vi keys. Returns None for
+    anything that isn't an arrow (including ordinary string keystrokes)."""
+    global _ARROW_TO_VI
+    if isinstance(ch, str):
+        return None
+    if _ARROW_TO_VI is None:
+        try:
+            import curses
+
+            _ARROW_TO_VI = {curses.KEY_LEFT: "h", curses.KEY_DOWN: "j",
+                            curses.KEY_UP: "k", curses.KEY_RIGHT: "l"}
+        except Exception:
+            _ARROW_TO_VI = {}
+    return _ARROW_TO_VI.get(ch)
+
 
 def _handle_key(editor: TuiEditor, ch) -> None:
     # Normalize curses key to a string where possible.
@@ -14,9 +37,11 @@ def _handle_key(editor: TuiEditor, ch) -> None:
     elif editor.mode == "rpn":
         _handle_rpn(editor, ch)
     elif editor.mode == "normal":
-        if isinstance(ch, str):
+        # Arrow keys navigate the sheet exactly like the vi keys h/j/k/l.
+        key = ch if isinstance(ch, str) else _arrow_vi(ch)
+        if key is not None:
             editor.message = ""
-            editor.dispatch_normal(ch)
+            editor.dispatch_normal(key)
     elif editor.mode == "insert":
         _handle_insert(editor, ch)
     elif editor.mode == "command":
@@ -40,6 +65,7 @@ def _handle_plot(editor: TuiEditor, ch) -> None:
 
 
 def _handle_browser(editor: TuiEditor, ch) -> None:
+    ch = _arrow_vi(ch) or ch   # arrows move the list like j/k (h/l are no-ops here)
     if ch in ("\n", "\r", 10, 13):
         editor.browser_insert()
     elif ch == "\x1b" or ch == "q":

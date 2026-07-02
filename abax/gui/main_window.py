@@ -419,13 +419,13 @@ class MainWindow(NavigationMixin, DocumentMixin, DocumentIOMixin, SettingsMixin,
         self._act(m_rec, "Replay recording", self._replay_recording)
         self._act(m_tools, "&Load macro / UDF file...", self.load_macros)
         self._act(m_tools, "Run Python &script...", self.run_script)
+        # Code-execution isolation (sandbox) level — checkable submenu.
+        m_iso = m_tools.addMenu("Code &isolation (sandbox)")
+        self._build_isolation_menu(m_iso)
         m_tools.addSeparator()
-        m_face = m_tools.addMenu("Calculator &faceplates")
-        self._act(m_face, "Set image folder...", self.set_faceplate_folder)
-        self._act(m_tools, "Copy selection as &Markdown", self._copy_as_markdown)
 
-        # --- Radio (ham / RF suite) ---------------------------------------
-        m_radio = mb.addMenu("&Radio")
+        # Radio (ham / RF suite) — a Tools submenu.
+        m_radio = m_tools.addMenu("&Radio")
         self._act(m_radio, "&RF toolkit...", self.show_rf_tool)
         self._act(m_radio, "Smith &chart...", self.show_smith_chart)
         self._act(m_radio, "&Antenna pattern...", self.show_antenna_pattern)
@@ -433,6 +433,11 @@ class MainWindow(NavigationMixin, DocumentMixin, DocumentIOMixin, SettingsMixin,
         self._act(m_radio, "RF re&ference (bands / CTCSS)...", self.show_rf_reference)
         self._act(m_radio, "&I/Q constellation -> SVG", self.export_iq_svg)
         self._act(m_radio, "Solve &NEC deck (PyNEC)...", self.solve_nec_pynec)
+
+        m_tools.addSeparator()
+        m_face = m_tools.addMenu("Calculator &faceplates")
+        self._act(m_face, "Set image folder...", self.set_faceplate_folder)
+        self._act(m_tools, "Copy selection as &Markdown", self._copy_as_markdown)
 
         # --- Help ---------------------------------------------------------
         m_help = mb.addMenu("&Help")

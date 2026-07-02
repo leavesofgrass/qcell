@@ -510,10 +510,10 @@ The full menu bar, organised the standard desktop way (labels are exactly as in
 - **Tools** — Scientific → (Matrix tool, Numerical solver, Signal / data tool,
   ODE solver, ML tool), Install optional features now, Budget wizard, File
   manager (`Ctrl+Shift+F`), Macros (submenu), Recording (start/stop, relative,
-  save, replay), Load macro / UDF file, Run Python script, Calculator faceplates,
-  Copy selection as Markdown.
-- **Radio** — RF toolkit, Smith chart, Antenna pattern, RF reference (bands /
-  CTCSS), I/Q constellation → SVG, Solve NEC deck (PyNEC).
+  save, replay), Load macro / UDF file, Run Python script, **Code isolation
+  (sandbox)** → (Off / Isolated / Strict), **Radio** → (RF toolkit, Smith chart,
+  Antenna pattern, RF reference (bands / CTCSS), I/Q constellation → SVG, Solve
+  NEC deck (PyNEC)), Calculator faceplates, Copy selection as Markdown.
 - **Help** — Keyboard shortcuts (`F1`), About abax.
 
 Press `F1` any time for the full, live shortcut list (it's generated from the

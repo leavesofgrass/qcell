@@ -1,5 +1,6 @@
-"""Menu organization after the reorg: a dedicated Radio menu, Scientific holds
-only the general-math tools, and the workbook/report actions moved to File/Data."""
+"""Menu organization: Radio and the general-math Scientific tools are Tools
+submenus, code-isolation is a checkable Tools submenu, and the workbook/report
+actions moved to File/Data."""
 
 from __future__ import annotations
 
@@ -54,9 +55,21 @@ def _items(win, title):
     return None
 
 
-def test_radio_menu_exists(win):
-    assert "Radio" in _menu_titles(win)
-    radio = _items(win, "Radio")
+def _submenu_items(win, top, sub):
+    """Leaf labels directly under the submenu named ``sub`` of top-level ``top``."""
+    for a in win.menuBar().actions():
+        if a.text().replace("&", "") == top:
+            for x in a.menu().actions():
+                if x.menu() is not None and x.text().replace("&", "") == sub:
+                    return [y.text().replace("&", "") for y in x.menu().actions() if y.text()]
+    return None
+
+
+def test_radio_is_a_tools_submenu(win):
+    # Radio moved from a top-level menu into Tools.
+    assert "Radio" not in _menu_titles(win)
+    radio = _submenu_items(win, "Tools", "Radio")
+    assert radio is not None, "Radio submenu missing from Tools"
     for label in ("RF toolkit...", "Smith chart...", "Antenna pattern...",
                   "RF reference (bands / CTCSS)...", "I/Q constellation -> SVG",
                   "Solve NEC deck (PyNEC)..."):
@@ -64,15 +77,35 @@ def test_radio_menu_exists(win):
 
 
 def test_scientific_is_general_math_only(win):
-    tools = _items(win, "Tools")
-    # The RF tools left Scientific for the Radio menu.
-    for label in ("Matrix tool...", "Numerical solver...", "ML tool (PCA / k-means / regression)..."):
-        assert label in tools, label
+    # The RF tools live under Radio, not Scientific.
+    sci = _submenu_items(win, "Tools", "Scientific")
+    assert sci is not None
+    for label in ("Matrix tool...", "Numerical solver...",
+                  "ML tool (PCA / k-means / regression)..."):
+        assert label in sci, label
     for gone in ("RF toolkit...", "Smith chart...", "Antenna pattern..."):
-        assert gone not in tools, gone
+        assert gone not in sci, gone
 
 
-def test_about_covers_current_features(win, monkeypatch):
+def test_code_isolation_submenu(win):
+    # A checkable Tools submenu offers the three isolation levels, with the
+    # current setting (default 'isolated') checked.
+    iso = _submenu_items(win, "Tools", "Code isolation (sandbox)")
+    assert iso is not None, "Code isolation submenu missing from Tools"
+    assert len(iso) == 3
+    acts = win._isolation_actions
+    assert set(acts) == {"off", "isolated", "strict"}
+    assert all(a.isCheckable() for a in acts.values())
+    assert acts["isolated"].isChecked()
+    assert not acts["off"].isChecked()
+    # Selecting a level updates the setting and the checkmarks.
+    win.set_code_isolation("off")
+    assert win._settings.code_isolation == "off"
+    assert acts["off"].isChecked() and not acts["isolated"].isChecked()
+    win.set_code_isolation("isolated")  # restore
+
+
+def test_about_is_concise_and_current(win, monkeypatch):
     from abax.gui import _qtcompat
 
     captured = {}
@@ -80,10 +113,12 @@ def test_about_covers_current_features(win, monkeypatch):
                         staticmethod(lambda parent, title, text: captured.update(text=text)))
     win.show_about()
     text = captured["text"]
-    # The About box should reflect the breadth of the app, not just "spreadsheet".
-    for keyword in ("RF", "signal processing", "antenna modeling", "Jupyter kernel",
-                    "machine learning", "Smith chart", "dynamic arrays", "spill"):
+    # Concise but still names the headline capabilities.
+    for keyword in ("RF", "machine learning", "Jupyter kernel", "dynamic arrays",
+                    "spill"):
         assert keyword in text, keyword
+    # Concise: the old multi-paragraph blurb is gone.
+    assert text.count("<br><br>") <= 3
 
 
 def test_report_and_compare_moved(win):

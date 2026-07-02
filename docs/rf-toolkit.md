@@ -146,7 +146,7 @@ C2: =GRIDBEARING("JN58td", "IO91wm") → ~300    (degrees, WNW)
 
 ## GUI tools (the *Radio* menu)
 
-All of the RF/ham tools live under a dedicated top-level **Radio** menu (general
+All of the RF/ham tools live under the **Tools → Radio** submenu (general
 math tools stay under *Tools → Scientific*):
 
 - **RF toolkit** — a mode-switching dialog for **link budget**, **coax line**,

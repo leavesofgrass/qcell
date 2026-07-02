@@ -54,10 +54,29 @@ class ConsoleMixin:
         return False
 
     _ISOLATION_ORDER = ("off", "isolated", "strict")
+    _ISOLATION_LABELS = {
+        "off": "&Off — in-process (no isolation)",
+        "isolated": "&Isolated — worker + resource limits (default)",
+        "strict": "&Strict — OS sandbox (no network, scratch-only writes)",
+    }
 
-    def cycle_code_isolation(self) -> None:
-        """Cycle how the console / scripts / macros are isolated:
-        **off** → **isolated** → **strict** → off.
+    def _build_isolation_menu(self, menu) -> None:
+        """Populate the Tools → Code isolation submenu with three checkable
+        levels reflecting (and setting) ``settings.code_isolation``."""
+        from ._qtcompat import QAction
+
+        cur = getattr(self._settings, "code_isolation", "isolated")
+        self._isolation_actions = {}
+        for level in self._ISOLATION_ORDER:
+            act = QAction(self._ISOLATION_LABELS[level], self)
+            act.setCheckable(True)
+            act.setChecked(level == cur)
+            act.triggered.connect(lambda _checked=False, lv=level: self.set_code_isolation(lv))
+            menu.addAction(act)
+            self._isolation_actions[level] = act
+
+    def set_code_isolation(self, level: str) -> None:
+        """Set how the console / scripts / macros are isolated:
 
         * *off* — run in this process: fastest, full access, no crash isolation.
         * *isolated* — out-of-process worker + memory/CPU/process limits (default).
@@ -69,10 +88,13 @@ class ConsoleMixin:
         you run."""
         from .. import sandbox as _sandbox
 
-        cur = getattr(self._settings, "code_isolation", "isolated")
-        order = self._ISOLATION_ORDER
-        new = order[(order.index(cur) + 1) % len(order)] if cur in order else "isolated"
-        self._settings.code_isolation = new
+        if level not in self._ISOLATION_ORDER:
+            level = "isolated"
+        self._settings.code_isolation = level
+        # Keep the menu's checkmarks in sync (whether triggered from the menu,
+        # the palette cycle, or elsewhere).
+        for lv, act in getattr(self, "_isolation_actions", {}).items():
+            act.setChecked(lv == level)
         # Reset the macro/script worker so the change applies immediately.
         bridge = getattr(self, "_macro_bridge", None)
         if bridge is not None:
@@ -81,10 +103,10 @@ class ConsoleMixin:
             except Exception:
                 pass
             self._macro_bridge = None
-        if new == "off":
+        if level == "off":
             self._set_status("code isolation: OFF — code runs in-process, no "
                              "worker or limits (not a security boundary)")
-        elif new == "isolated":
+        elif level == "isolated":
             self._set_status("code isolation: ISOLATED — out-of-process worker + "
                              "resource limits (crash isolation, not a boundary)")
         else:  # strict
@@ -95,6 +117,14 @@ class ConsoleMixin:
                 self._set_status("code isolation: STRICT — but no OS confinement "
                                  "is available here, so code execution will "
                                  "refuse to run (fail-closed).")
+
+    def cycle_code_isolation(self) -> None:
+        """Cycle the code-isolation level off → isolated → strict → off (the
+        command-palette entry point; the menu offers the levels directly)."""
+        cur = getattr(self._settings, "code_isolation", "isolated")
+        order = self._ISOLATION_ORDER
+        nxt = order[(order.index(cur) + 1) % len(order)] if cur in order else "isolated"
+        self.set_code_isolation(nxt)
 
     def show_terminal(self) -> None:
         if not self._require_code_consent("The system terminal"):

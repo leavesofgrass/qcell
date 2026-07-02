@@ -180,6 +180,17 @@ All notable changes to abax are documented here. The format follows
   "needs program/solver memory" message.
 
 ### Changed
+- **TUI: arrow keys navigate the sheet** alongside the vim keys `h`/`j`/`k`/`l`
+  (and drive the function/file browser lists), so you don't have to use vi
+  bindings to move around.
+- **Code-isolation level is a menu item.** *Tools → Code isolation (sandbox)*
+  offers **Off / Isolated / Strict** as checkable options (reflecting the
+  current `code_isolation` setting), so the sandbox level is set from the UI
+  rather than by editing settings or only via the command palette.
+- **The Radio (RF/ham) menu moved under *Tools*** as a submenu, alongside
+  *Scientific*, rather than a top-level menu.
+- **The Help → About dialog is more concise** — a short capability summary
+  instead of the previous multi-paragraph blurb.
 - **The curses TUI works on Windows out of the box.** The `tui` extra now pulls
   in `windows-curses` (via a `sys_platform == 'win32'` marker, so it's a no-op on
   Linux/macOS), so `pip install abax[tui]` then `abax tui` just works — no more

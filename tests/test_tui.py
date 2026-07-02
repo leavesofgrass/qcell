@@ -57,6 +57,26 @@ def test_vim_dispatch_navigation():
     assert ed.row == 0
 
 
+def test_arrow_keys_navigate_the_sheet():
+    """Arrow keys (curses int key codes) move the cursor like h/j/k/l."""
+    import curses
+
+    from abax.tui.keys import _handle_key
+
+    ed = TuiEditor(Document())
+    ed.mode = "normal"
+    _handle_key(ed, curses.KEY_DOWN)
+    _handle_key(ed, curses.KEY_DOWN)
+    _handle_key(ed, curses.KEY_RIGHT)
+    assert (ed.row, ed.col) == (2, 1)
+    _handle_key(ed, curses.KEY_UP)
+    _handle_key(ed, curses.KEY_LEFT)
+    assert (ed.row, ed.col) == (1, 0)
+    # Ordinary vi keys still work alongside the arrows.
+    ed.dispatch_normal("j")
+    assert ed.row == 2
+
+
 def test_vim_insert_commits_value():
     ed = TuiEditor(Document())
     ed.begin_insert()

@@ -127,7 +127,7 @@ abax tui             # curses/Textual TUI on an empty workbook
 abax tui data.csv    # open a file in the TUI
 ```
 
-The TUI is keyboard-driven with vim-style bindings on by default and a `:command` line for everything else (find, fill, sort, macros, the RPN calculator, and more).
+The TUI is keyboard-driven with vim-style bindings on by default — move around the sheet with `h`/`j`/`k`/`l` **or the arrow keys** — and a `:command` line for everything else (find, fill, sort, macros, the RPN calculator, and more).
 
 ### Headless CLI
 
